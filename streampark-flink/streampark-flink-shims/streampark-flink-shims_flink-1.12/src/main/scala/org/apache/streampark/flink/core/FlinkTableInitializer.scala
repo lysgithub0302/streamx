@@ -141,7 +141,11 @@ private[flink] class FlinkTableInitializer(args: Array[String], apiType: ApiType
     parameter.get(KEY_FLINK_SQL()) match {
       case null => parameter
       case param =>
+<<<<<<<< HEAD:streampark-flink/streampark-flink-shims/streampark-flink-shims_flink-1.12/src/main/scala/org/apache/streampark/flink/core/FlinkTableInitializer.scala
         //for strstreamparkeamx-console
+========
+        //for streampark-console
+>>>>>>>> 67724c8cc187bb17d29810479113f8b00d42d1d1:streampark-flink/streampark-flink-shims/streampark-flink-shims_flink-1.13/src/main/scala/org/apache/streampark/flink/core/FlinkTableInitializer.scala
         Try(DeflaterUtils.unzipString(param)) match {
           case Success(value) => parameter.mergeWith(ParameterTool.fromMap(Map(KEY_FLINK_SQL() -> value)))
           case Failure(_) =>

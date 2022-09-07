@@ -90,7 +90,7 @@ import org.apache.streampark.flink.submit.bean.KubernetesSubmitParam;
 import org.apache.streampark.flink.submit.bean.SubmitRequest;
 import org.apache.streampark.flink.submit.bean.SubmitResponse;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -133,9 +133,6 @@ import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * @author benjobs
- */
 @Slf4j
 @Service
 @Transactional(propagation = Propagation.SUPPORTS, readOnly = true, rollbackFor = Exception.class)
@@ -147,8 +144,8 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
     private final Map<Long, Boolean> tailBeginning = new ConcurrentHashMap<>();
 
     private final ExecutorService executorService = new ThreadPoolExecutor(
-        Runtime.getRuntime().availableProcessors() * 2,
-        200,
+        Runtime.getRuntime().availableProcessors() * 5,
+        Runtime.getRuntime().availableProcessors() * 10,
         60L,
         TimeUnit.SECONDS,
         new LinkedBlockingQueue<>(1024),
@@ -524,7 +521,7 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
             return AppExistsState.INVALID;
         }
         boolean inDB = this.baseMapper.selectCount(
-            new QueryWrapper<Application>().lambda()
+            new LambdaQueryWrapper<Application>()
                 .eq(Application::getJobName, appParam.getJobName())) > 0;
 
         if (appParam.getId() != null) {
@@ -611,7 +608,7 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
     @Transactional(rollbackFor = {Exception.class})
     public Long copy(Application appParam) {
         long count = this.baseMapper.selectCount(
-            new QueryWrapper<Application>().lambda()
+            new LambdaQueryWrapper<Application>()
                 .eq(Application::getJobName, appParam.getJobName()));
         if (count > 0) {
             throw new IllegalArgumentException("[StreamPark] Application names cannot be repeated");
@@ -764,12 +761,13 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
             application.setCpFailureRateInterval(appParam.getCpFailureRateInterval());
             application.setCpMaxFailureInterval(appParam.getCpMaxFailureInterval());
             application.setFlinkClusterId(appParam.getFlinkClusterId());
+            application.setTags(appParam.getTags());
 
             // Flink Sql job...
             if (application.isFlinkSqlJob()) {
                 updateFlinkSqlJob(application, appParam);
             } else {
-                if (application.isStreamXJob()) {
+                if (application.isStreamParkJob()) {
                     configService.update(appParam, application.isRunning());
                 } else {
                     application.setJar(appParam.getJar());
@@ -1478,7 +1476,7 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
         // 2) Application conf配置优先级第二,如果是 streampark|flinksql 类型的任务,则看任务定义时是否配置了Application conf,
         // 如配置了并开启了checkpoints则读取state.savepoints.dir
         if (StringUtils.isBlank(savepointPath)) {
-            if (application.isStreamXJob() || application.isFlinkSqlJob()) {
+            if (application.isStreamParkJob() || application.isFlinkSqlJob()) {
                 ApplicationConfig applicationConfig = configService.getEffective(application.getId());
                 if (applicationConfig != null) {
                     Map<String, String> map = applicationConfig.readConfig();

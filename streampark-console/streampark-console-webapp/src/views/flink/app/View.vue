@@ -219,7 +219,12 @@
 
       <div slot="extra">
         <a-input-group compact>
-          <a-select placeholder="User" allowClear @change="handleChangeUser" style="margin-left: 16px;width: 120px">
+          <a-select placeholder="Tags" show-search allowClear @change="handleChangeTags" style="margin-left: 16px;width: 150px">
+            <a-select-option v-for="tag in tagsOptions" :key="tag">
+              <span> {{ tag }} </span>
+            </a-select-option>
+          </a-select>
+          <a-select placeholder="Owner" allowClear @change="handleChangeUser" style="margin-left: 16px;width: 120px">
             <a-select-option v-for="u in users" :key="u.userId">
               <span v-if="u.nickName"> {{ u.nickName }} </span>
               <span v-else> {{ u.username }} </span>
@@ -310,6 +315,20 @@
               title="the application has changed."/>
           </template>
 
+        </template>
+
+        <template
+          slot="tags"
+          slot-scope="text, record">
+          <a-tooltip>
+            <span v-for="(tag,index) in record.tags.split(',')" :key="'tag-'.concat(index)">
+              <a-tag color="blue" class="app-tag">{{ tag }}</a-tag>
+            </span>
+            <template
+              slot="title">
+              {{ record.tags }}
+            </template>
+          </a-tooltip>
         </template>
 
         <template
@@ -1130,6 +1149,8 @@ export default {
       jobType: null,
       userId: null,
       users: [],
+      tags: null,
+      tagsOptions: [],
       sortedInfo: null,
       filteredInfo: null,
       queryInterval: 2000,
@@ -1207,16 +1228,35 @@ export default {
       return [ {
         title: 'Application Name',
         dataIndex: 'jobName',
-        width: 320,
+        width: 300,
         scopedSlots: {customRender: 'jobName'},
-      },  {
+      }, {
+        title: 'Tags',
+        dataIndex: 'tags',
+        width: 150,
+        ellipsis: true,
+        scopedSlots: {customRender: 'tags'},
+      }, {
+        title: 'Owner',
+        dataIndex: 'nickName',
+        width: 100
+      }, {
         title: 'Flink Version',
         dataIndex: 'flinkVersion',
         width: 130
       }, {
-        title: 'Owner',
-        dataIndex: 'nickName',
-        width: 130
+        title: 'Duration',
+        dataIndex: 'duration',
+        sorter: true,
+        sortOrder: sortedInfo.columnKey === 'duration' && sortedInfo.order,
+        scopedSlots: {customRender: 'duration'},
+        width: 150
+      }, {
+        title: 'Modified Time',
+        dataIndex: 'modifyTime',
+        sorter: true,
+        sortOrder: sortedInfo.columnKey === 'modifyTime' && sortedInfo.order,
+        width: 170
       }, {
         title: 'Run Status',
         dataIndex: 'state',
@@ -1239,25 +1279,12 @@ export default {
         width: 220,
         scopedSlots: {customRender: 'launchState'}
       }, {
-        title: 'Duration',
-        dataIndex: 'duration',
-        sorter: true,
-        sortOrder: sortedInfo.columnKey === 'duration' && sortedInfo.order,
-        scopedSlots: {customRender: 'duration'},
-        width: 150
-      }, {
-        title: 'Modified Time',
-        dataIndex: 'modifyTime',
-        sorter: true,
-        sortOrder: sortedInfo.columnKey === 'modifyTime' && sortedInfo.order,
-        width: 170
-      }, {
         dataIndex: 'operation',
         key: 'operation',
         fixed: 'right',
         scopedSlots: {customRender: 'operation'},
         slots: {title: 'customOperation'},
-        width: 150
+        width: 160
       }]
     }
   },
@@ -1267,6 +1294,7 @@ export default {
     listUser({'pageSize': '9999'}).then((resp) => {
       this.users = resp.data.records
     })
+    this.handleInitTagsOptions()
     this.handleFetch(true)
     const timer = window.setInterval(() => {
       this.handleDashboard()
@@ -1937,6 +1965,7 @@ export default {
       this.queryParams['jobName'] = this.searchText
       this.queryParams['jobType'] = this.jobType
       this.queryParams['userId'] = this.userId
+      this.queryParams['tags'] = this.tags
       this.handleFetch(false)
     },
 
@@ -1953,6 +1982,31 @@ export default {
         this.queryParams['sortOrder'] = sorter.order
       }
       this.handleFetch(true)
+    },
+
+    //Tags
+    handleInitTagsOptions() {
+      const params = Object.assign(this.queryParams, {})
+      params.pageSize = 999999999
+      params.pageNum = 1
+      list({...params}).then((resp) => {
+          const dataSource = resp.data.records
+          dataSource.forEach(record => {
+            if (record.tags !== null && record.tags !== undefined && record.tags !== '') {
+              const tagsArray =record.tags.split(',')
+              tagsArray.forEach(x => {
+                if(x.length > 0 && this.tagsOptions.indexOf(x) == -1) {
+                  this.tagsOptions.push(x)
+                }
+              })
+            }
+          })
+      })
+    },
+
+    handleChangeTags(tags) {
+      this.tags = tags
+      this.handleSearch()
     },
 
     handleFetch(loading) {

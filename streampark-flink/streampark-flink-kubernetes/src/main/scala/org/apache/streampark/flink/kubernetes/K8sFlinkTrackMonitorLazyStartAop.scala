@@ -25,7 +25,6 @@ import org.apache.streampark.flink.kubernetes.model.{ClusterKey, FlinkMetricCV, 
  * What more, this AOP has the ability to automatically recover
  * the FlinkTrackMonitor's internal FlinkWatcher.
  *
- * author:Al-assad
  */
 trait K8sFlinkTrackMonitorLazyStartAop extends K8sFlinkTrackMonitor {
 
@@ -65,12 +64,12 @@ trait K8sFlinkTrackMonitorLazyStartAop extends K8sFlinkTrackMonitor {
   }
 
   abstract override def getAccClusterMetrics: FlinkMetricCV = {
-    // hehavior of getting cluster metrics will not trgger a delayed start
+    // behavior of getting cluster metrics will not trgger a delayed start
     super.getAccClusterMetrics
   }
 
   abstract override def getClusterMetrics(clusterKey: ClusterKey): Option[FlinkMetricCV] = {
-    // hehavior of getting cluster metrics will not trgger a delayed start
+    // behavior of getting cluster metrics will not trgger a delayed start
     super.getClusterMetrics(clusterKey)
   }
 

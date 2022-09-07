@@ -36,7 +36,6 @@ import org.apache.streampark.console.core.task.FlinkTrackingTask;
 import org.apache.streampark.console.core.websocket.WebSocketEndpoint;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -66,9 +65,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author benjobs
- */
 @Slf4j
 @Service
 @Transactional(propagation = Propagation.SUPPORTS, readOnly = true, rollbackFor = Exception.class)
@@ -85,8 +81,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     private ApplicationService applicationService;
 
     private final ExecutorService executorService = new ThreadPoolExecutor(
-        Runtime.getRuntime().availableProcessors() * 2,
-        200,
+        Runtime.getRuntime().availableProcessors() * 5,
+        Runtime.getRuntime().availableProcessors() * 10,
         60L,
         TimeUnit.SECONDS,
         new LinkedBlockingQueue<>(1024),
@@ -96,8 +92,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
 
     @Override
     public RestResponse create(Project project) {
-        QueryWrapper<Project> queryWrapper = new QueryWrapper<>();
-        queryWrapper.lambda().eq(Project::getName, project.getName());
+        LambdaQueryWrapper<Project> queryWrapper = new LambdaQueryWrapper();
+        queryWrapper.eq(Project::getName, project.getName());
         long count = count(queryWrapper);
         RestResponse response = RestResponse.success();
         if (count == 0) {
@@ -152,7 +148,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     public boolean delete(Long id) {
         Project project = getById(id);
         assert project != null;
-        LambdaQueryWrapper<Application> queryWrapper = new QueryWrapper<Application>().lambda();
+        LambdaQueryWrapper<Application> queryWrapper = new LambdaQueryWrapper<Application>();
         queryWrapper.eq(Application::getProjectId, id);
         long count = applicationService.count(queryWrapper);
         if (count > 0) {
@@ -194,7 +190,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
                         FlinkTrackingTask.refreshTracking(() -> applications.forEach((app) -> {
                             log.info("update deploy by project: {}, appName:{}", project.getName(), app.getJobName());
                             app.setLaunch(LaunchState.NEED_LAUNCH.get());
-                            app.setBuild(Boolean.TRUE);
+                            app.setBuild(true);
                             this.applicationService.updateLaunch(app);
                         }));
                     } catch (Exception e) {
@@ -337,7 +333,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
                 return false;
             }
         }
-        LambdaQueryWrapper<Project> wrapper = new QueryWrapper<Project>().lambda()
+        LambdaQueryWrapper<Project> wrapper = new LambdaQueryWrapper<Project>()
             .eq(Project::getName, project.getName());
         return this.baseMapper.selectCount(wrapper) > 0;
     }

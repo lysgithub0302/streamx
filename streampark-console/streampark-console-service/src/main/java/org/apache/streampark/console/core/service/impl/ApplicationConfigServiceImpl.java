@@ -30,7 +30,6 @@ import org.apache.streampark.console.core.service.ApplicationConfigService;
 import org.apache.streampark.console.core.service.EffectiveService;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -48,9 +47,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
-/**
- * @author benjobs
- */
 @Slf4j
 @Service
 @Transactional(propagation = Propagation.SUPPORTS, readOnly = true, rollbackFor = Exception.class)
@@ -86,12 +82,13 @@ public class ApplicationConfigServiceImpl
     @Transactional(rollbackFor = {Exception.class})
     public void setLatest(Long appId, Long configId) {
         LambdaUpdateWrapper<ApplicationConfig> updateWrapper = Wrappers.lambdaUpdate();
-        updateWrapper.set(ApplicationConfig::getLatest, 0)
+        updateWrapper.set(ApplicationConfig::getLatest, false)
             .eq(ApplicationConfig::getAppId, appId);
         this.update(updateWrapper);
 
         updateWrapper.clear();
-        updateWrapper.set(ApplicationConfig::getLatest, 1).eq(ApplicationConfig::getId, configId);
+        updateWrapper.set(ApplicationConfig::getLatest, true)
+            .eq(ApplicationConfig::getId, configId);
         this.update(updateWrapper);
     }
 
@@ -178,7 +175,7 @@ public class ApplicationConfigServiceImpl
     public void toEffective(Long appId, Long configId) {
         LambdaUpdateWrapper<ApplicationConfig> updateWrapper = Wrappers.lambdaUpdate();
         updateWrapper.eq(ApplicationConfig::getAppId, appId)
-            .set(ApplicationConfig::getLatest, 0);
+            .set(ApplicationConfig::getLatest, false);
         this.update(updateWrapper);
         effectiveService.saveOrUpdate(appId, EffectiveType.CONFIG, configId);
     }
@@ -215,7 +212,7 @@ public class ApplicationConfigServiceImpl
 
     @Override
     public List<ApplicationConfig> history(Application application) {
-        LambdaQueryWrapper<ApplicationConfig> wrapper = new QueryWrapper<ApplicationConfig>().lambda();
+        LambdaQueryWrapper<ApplicationConfig> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ApplicationConfig::getAppId, application.getId())
             .orderByDesc(ApplicationConfig::getVersion);
 

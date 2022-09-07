@@ -29,15 +29,12 @@ import org.apache.ibatis.annotations.Update;
 
 import java.util.Date;
 
-/**
- * @author benjobs
- */
 public interface SavePointMapper extends BaseMapper<SavePoint> {
 
     @Update("update t_flink_savepoint set latest=0 where app_id=#{appId}")
     void obsolete(@Param("appId") Long appId);
 
-    @Select("select * from t_flink_savepoint where app_id=#{appId} and latest=1")
+    @Select("select * from t_flink_savepoint where app_id=#{appId} and latest=true")
     SavePoint getLatest(@Param("appId") Long appId);
 
     @Select("select * from t_flink_savepoint where app_id=#{appId}")

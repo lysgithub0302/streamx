@@ -26,7 +26,6 @@ import org.apache.streampark.console.core.service.MessageService;
 import org.apache.streampark.console.core.websocket.WebSocketEndpoint;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +33,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * @author benjobs
- */
 @Slf4j
 @Service
 @Transactional(propagation = Propagation.SUPPORTS, readOnly = true, rollbackFor = Exception.class)
@@ -51,7 +47,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message>
 
     @Override
     public IPage<Message> getUnRead(NoticeType noticeType, RestRequest request) {
-        LambdaQueryWrapper<Message> query = new QueryWrapper<Message>().lambda();
+        LambdaQueryWrapper<Message> query = new LambdaQueryWrapper();
         query.eq(Message::getIsRead, false).orderByDesc(Message::getCreateTime);
         query.eq(Message::getType, noticeType.get());
         return this.baseMapper.selectPage(new MybatisPager<Message>().getDefaultPage(request), query);
