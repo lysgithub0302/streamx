@@ -1,3 +1,22 @@
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+
 <template>
   <a-layout
     :class="['layout', device]">
@@ -94,7 +113,7 @@ export default {
         return '0'
       }
       if (this.sidebarOpened) {
-        return '228px'
+        return '240px'
       }
       return '80px'
     }
@@ -129,7 +148,7 @@ export default {
     paddingCalc () {
       let left = ''
       if (this.sidebarOpened) {
-        left = this.isDesktop() ? '228px' : '80px'
+        left = this.isDesktop() ? '240px' : '80px'
       } else {
         left = (this.isMobile() && '0') || ((this.fixSidebar && '80px') || '0')
       }

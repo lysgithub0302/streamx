@@ -26,11 +26,7 @@ import org.apache.streampark.console.core.bean.AlertTemplate;
  * @date 2022.01.14
  */
 public interface AlertNotifyService {
-    /**
-     * alert
-     *
-     * @param template
-     */
+
     boolean doAlert(AlertConfigWithParams alertConfig, AlertTemplate template) throws AlertException;
 
 }

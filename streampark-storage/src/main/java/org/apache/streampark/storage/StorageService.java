@@ -17,8 +17,11 @@
 
 package org.apache.streampark.storage;
 
+/**
+ * StorageService will be used as artifacts fetcher in pod template, so it should rely on other modules.
+ */
 public interface StorageService {
-    byte[] getData(String objectPath);
+    void getData(String objectPath, String localFilePath) throws Exception;
 
-    Boolean putData(String objectPath, byte[] data);
+    void putData(String objectPath, String localFilePath) throws Exception;
 }
