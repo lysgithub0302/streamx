@@ -17,15 +17,16 @@
 
 package org.apache.streampark.console.system.service.impl;
 
+import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.console.base.domain.Constant;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.system.entity.Role;
 import org.apache.streampark.console.system.entity.RoleMenu;
 import org.apache.streampark.console.system.mapper.RoleMapper;
 import org.apache.streampark.console.system.mapper.RoleMenuMapper;
+import org.apache.streampark.console.system.service.MemberService;
 import org.apache.streampark.console.system.service.RoleMenuServie;
 import org.apache.streampark.console.system.service.RoleService;
-import org.apache.streampark.console.system.service.UserRoleService;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -42,8 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -54,16 +54,10 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     private RoleMenuMapper roleMenuMapper;
 
     @Autowired
-    private UserRoleService userRoleService;
+    private MemberService memberService;
 
     @Autowired
     private RoleMenuServie roleMenuService;
-
-    @Override
-    public Set<String> getUserRoleName(String username) {
-        List<Role> roleList = this.findUserRole(username);
-        return roleList.stream().map(Role::getRoleName).collect(Collectors.toSet());
-    }
 
     @Override
     public IPage<Role> findRoles(Role role, RestRequest request) {
@@ -71,11 +65,6 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         page.setCurrent(request.getPageNum());
         page.setSize(request.getPageSize());
         return this.baseMapper.findRole(page, role);
-    }
-
-    @Override
-    public List<Role> findUserRole(String userName) {
-        return baseMapper.findUserRole(userName);
     }
 
     @Override
@@ -93,20 +82,24 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     @Override
-    public void deleteRoles(String[] roleIds) throws Exception {
-        List<String> list = Arrays.asList(roleIds);
-        baseMapper.deleteBatchIds(list);
-        this.roleMenuService.deleteRoleMenusByRoleId(roleIds);
-        this.userRoleService.deleteUserRolesByRoleId(roleIds);
+    public void deleteRole(Long roleId) {
+        Role role = Optional.ofNullable(this.getById(roleId))
+            .orElseThrow(() -> new IllegalArgumentException(String.format("Role id [%s] not found", roleId)));
+        List<Long> userIdsByRoleId = memberService.findUserIdsByRoleId(roleId);
+        AssertUtils.isTrue(userIdsByRoleId == null || userIdsByRoleId.isEmpty(),
+            String.format("There are some users are bound to role %s , please unbind it first.", role.getRoleName()));
+        this.removeById(roleId);
+        this.roleMenuService.deleteByRoleId(roleId);
     }
 
     @Override
-    public void updateRole(Role role) throws Exception {
-        String[] roleId = {String.valueOf(role.getRoleId())};
+    public void updateRole(Role role) {
         role.setModifyTime(new Date());
         baseMapper.updateById(role);
-        roleMenuMapper.delete(
-            new LambdaQueryWrapper<RoleMenu>().eq(RoleMenu::getRoleId, role.getRoleId()));
+        LambdaQueryWrapper<RoleMenu> queryWrapper = new LambdaQueryWrapper<RoleMenu>()
+            .eq(RoleMenu::getRoleId, role.getRoleId());
+        roleMenuMapper.delete(queryWrapper);
+
         String menuId = role.getMenuId();
         if (StringUtils.contains(menuId, Constant.APP_DETAIL_MENU_ID) && !StringUtils.contains(menuId, Constant.APP_MENU_ID)) {
             menuId = menuId + StringPool.COMMA + Constant.APP_MENU_ID;

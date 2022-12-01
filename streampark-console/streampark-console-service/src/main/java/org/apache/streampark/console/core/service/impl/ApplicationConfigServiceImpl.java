@@ -33,6 +33,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -201,19 +202,17 @@ public class ApplicationConfigServiceImpl
 
     @Override
     public IPage<ApplicationConfig> page(ApplicationConfig config, RestRequest request) {
-        return this.baseMapper.page(
-            new MybatisPager<ApplicationConfig>().getPage(request, "version", Constant.ORDER_DESC),
-            config.getAppId()
-        );
+        Page<ApplicationConfig> page = new MybatisPager<ApplicationConfig>().getPage(request, "version", Constant.ORDER_DESC);
+        return this.baseMapper.pageByAppId(page, config.getAppId());
     }
 
     @Override
     public List<ApplicationConfig> history(Application application) {
-        LambdaQueryWrapper<ApplicationConfig> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ApplicationConfig::getAppId, application.getId())
+        LambdaQueryWrapper<ApplicationConfig> queryWrapper = new LambdaQueryWrapper<ApplicationConfig>()
+            .eq(ApplicationConfig::getAppId, application.getId())
             .orderByDesc(ApplicationConfig::getVersion);
 
-        List<ApplicationConfig> configList = this.baseMapper.selectList(wrapper);
+        List<ApplicationConfig> configList = this.baseMapper.selectList(queryWrapper);
         ApplicationConfig effective = getEffective(application.getId());
 
         if (effective != null) {

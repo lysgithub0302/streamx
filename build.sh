@@ -34,24 +34,15 @@ fi
 
  # Only use colors if connected to a terminal
 if [[ ${have_tty} -eq 1 ]]; then
-  RAINBOW="
-    $(printf '\033[38;5;196m')
-    $(printf '\033[38;5;202m')
-    $(printf '\033[38;5;226m')
-    $(printf '\033[38;5;082m')
-    $(printf '\033[38;5;021m')
-    $(printf '\033[38;5;093m')
-    $(printf '\033[38;5;163m')
-  "
+  PRIMARY=$(printf '\033[38;5;082m')
   RED=$(printf '\033[31m')
   GREEN=$(printf '\033[32m')
   YELLOW=$(printf '\033[33m')
   BLUE=$(printf '\033[34m')
   BOLD=$(printf '\033[1m')
   RESET=$(printf '\033[0m')
-
 else
-  RAINBOW=""
+  PRIMARY=""
   RED=""
   GREEN=""
   YELLOW=""
@@ -119,16 +110,16 @@ PRG_DIR=`dirname "$PRG"`
 
 print_logo() {
   printf '\n'
-  printf '%s           %s.+. %s   %s     %s     %s          %s                         %s\n' $RAINBOW $RESET
-  printf '%s     _____%s/ /_%s_____%s___  %s____ %s_____ ___ %s _  __                  %s\n' $RAINBOW $RESET
-  printf '%s    / ___/%s __%s/ ___%s/ _ \%s/ __ `%s/ __ `__ \%s| |/_/                  %s\n' $RAINBOW $RESET
-  printf '%s   (__  )%s /_%s/ /  %s/  __/%s /_/ %s/ / / / / /%s>   <                   %s\n' $RAINBOW $RESET
-  printf '%s  /____/%s\__%s/_/   %s\___/%s\__,_%s/_/ /_/ /_/%s_/|_|                    %s\n' $RAINBOW $RESET
-  printf '%s       %s    %s     %s      %s     %s           %s  |/                     %s\n' $RAINBOW $RESET
-  printf '%s      %s    %s    %s      %s     %s             %s  .                      %s\n' $RAINBOW $RESET
-  printf '  • WebSite: %s http://streampark.apache.org%s\n'                              $BLUE   $RESET
-  printf '  • GitHub : %s http://github.com/apache/streampark%s\n'                   $BLUE   $RESET
-  printf '          %s ────────  Make stream processing easier ô~ô!%s\n\n'            $GREEN  $RESET
+  printf '      %s    _____ __                                             __       %s\n'          $PRIMARY $RESET
+  printf '      %s   / ___// /_________  ____ _____ ___  ____  ____ ______/ /__     %s\n'          $PRIMARY $RESET
+  printf '      %s   \__ \/ __/ ___/ _ \/ __ `/ __ `__ \/ __ \  __ `/ ___/ //_/     %s\n'          $PRIMARY $RESET
+  printf '      %s  ___/ / /_/ /  /  __/ /_/ / / / / / / /_/ / /_/ / /  / ,<        %s\n'          $PRIMARY $RESET
+  printf '      %s /____/\__/_/   \___/\__,_/_/ /_/ /_/ ____/\__,_/_/  /_/|_|       %s\n'          $PRIMARY $RESET
+  printf '      %s                                   /_/                            %s\n\n'        $PRIMARY $RESET
+  printf '      %s   Version:  2.0.0 %s\n'                                                         $BLUE   $RESET
+  printf '      %s   WebSite:  https://streampark.apache.org%s\n'                                   $BLUE   $RESET
+  printf '      %s   GitHub :  http://github.com/apache/streampark%s\n\n'                          $BLUE   $RESET
+  printf '      %s   ──────── Apache StreamPark, Make stream processing easier ô~ô!%s\n\n'         $PRIMARY  $RESET
 }
 
 checkPerm() {
@@ -185,7 +176,7 @@ mixedPackage() {
     binaryVer="2.12"
   fi
   echo_g "build info: package mode @ mixed, scala version @ $binaryVer, now build starting..."
-  "$PRG_DIR/mvnw" clean package -T 4 -DskipTests -Dscala.version=$scalaVer -Dscala.binary.version=$binaryVer -Pwebapp
+  "$PRG_DIR/mvnw" clean package -DskipTests -Dscala.version=$scalaVer -Dscala.binary.version=$binaryVer -Pwebapp
 
   if [ $? -eq 0 ]; then
      printf '\n'
@@ -203,7 +194,7 @@ detachedPackage () {
 
   echo_g "build info: package mode @ detached, scala version @ $binaryVer, now build starting..."
 
-  "$PRG_DIR"/mvnw clean package -T 4 -DskipTests -Dscala.version=$scalaVer -Dscala.binary.version=$binaryVer
+  "$PRG_DIR"/mvnw clean package -DskipTests -Dscala.version=$scalaVer -Dscala.binary.version=$binaryVer
 
   if [ $? -eq 0 ]; then
     printf '\n'
@@ -214,7 +205,7 @@ detachedPackage () {
      2) npm install # or yarn install
      3) npm build   # or yarn build
 
-    please visit: http://streampark.apache.org/docs/user-guide/deployment for more detail. \n"""
+    please visit: https://streampark.apache.org/docs/user-guide/deployment for more detail. \n"""
   fi
 }
 

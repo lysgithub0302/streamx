@@ -17,35 +17,38 @@
 
 package org.apache.streampark.console.system.service.impl;
 
+import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.console.base.domain.RestRequest;
+import org.apache.streampark.console.base.exception.ApiAlertException;
 import org.apache.streampark.console.base.util.ShaHashUtils;
-import org.apache.streampark.console.system.entity.Menu;
-import org.apache.streampark.console.system.entity.Role;
+import org.apache.streampark.console.system.authentication.JWTToken;
+import org.apache.streampark.console.system.entity.Team;
 import org.apache.streampark.console.system.entity.User;
-import org.apache.streampark.console.system.entity.UserRole;
 import org.apache.streampark.console.system.mapper.UserMapper;
+import org.apache.streampark.console.system.service.MemberService;
 import org.apache.streampark.console.system.service.MenuService;
-import org.apache.streampark.console.system.service.RoleService;
-import org.apache.streampark.console.system.service.UserRoleService;
 import org.apache.streampark.console.system.service.UserService;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
+import javax.annotation.Nullable;
+
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -53,17 +56,16 @@ import java.util.stream.Collectors;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     @Autowired
-    private UserRoleService userRoleService;
-
-    @Autowired
-    private RoleService roleService;
+    private MemberService memberService;
 
     @Autowired
     private MenuService menuService;
 
     @Override
     public User findByName(String username) {
-        return baseMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>()
+            .eq(User::getUsername, username);
+        return baseMapper.selectOne(queryWrapper);
     }
 
     @Override
@@ -73,18 +75,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         page.setSize(request.getPageSize());
         IPage<User> resPage = this.baseMapper.findUserDetail(page, user);
 
-        if (resPage != null && !resPage.getRecords().isEmpty()) {
-            List<User> users = resPage.getRecords();
-            users.forEach(u -> {
-                List<Role> roleList = roleService.findUserRole(u.getUsername());
-                String roleIds = roleList.stream().map((iter) -> iter.getRoleId().toString()).collect(Collectors.joining(","));
-                String roleNames = roleList.stream().map(Role::getRoleName).collect(Collectors.joining(","));
-                u.setRoleId(roleIds);
-                u.setRoleName(roleNames);
-            });
-            resPage.setRecords(users);
-        }
-        assert resPage != null;
+        AssertUtils.state(resPage != null);
         if (resPage.getTotal() == 0) {
             resPage.setRecords(Collections.emptyList());
         }
@@ -93,114 +84,168 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateLoginTime(String username) throws Exception {
+    public void updateLoginTime(String username) {
         User user = new User();
         user.setLastLoginTime(new Date());
-        this.baseMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>()
+            .eq(User::getUsername, username);
+        this.baseMapper.update(user, queryWrapper);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void createUser(User user) throws Exception {
+    public void createUser(User user) {
         user.setCreateTime(new Date());
         user.setAvatar(User.DEFAULT_AVATAR);
-        String salt = ShaHashUtils.getRandomSalt(26);
+        String salt = ShaHashUtils.getRandomSalt();
         String password = ShaHashUtils.encrypt(salt, user.getPassword());
         user.setSalt(salt);
         user.setPassword(password);
         save(user);
-        String[] roles = user.getRoleId().split(StringPool.COMMA);
-        setUserRoles(user, roles);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateUser(User user) throws Exception {
+    public void updateUser(User user) {
         user.setPassword(null);
         user.setModifyTime(new Date());
         updateById(user);
-        userRoleService.deleteUserRolesByUserId(new String[]{user.getUserId().toString()});
-        String[] roles = user.getRoleId().split(StringPool.COMMA);
-        setUserRoles(user, roles);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteUsers(String[] userIds) throws Exception {
-        List<String> list = Arrays.asList(userIds);
-        removeByIds(list);
-        this.userRoleService.deleteUserRolesByUserId(userIds);
+    public void deleteUser(Long userId) {
+        removeById(userId);
+        this.memberService.deleteByUserId(userId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateProfile(User user) throws Exception {
+    public void updateProfile(User user) {
         updateById(user);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateAvatar(String username, String avatar) throws Exception {
+    public void updateAvatar(String username, String avatar) {
         User user = new User();
         user.setAvatar(avatar);
-        this.baseMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>()
+            .eq(User::getUsername, username);
+        this.baseMapper.update(user, queryWrapper);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updatePassword(String username, String password) throws Exception {
+    public void updatePassword(String username, String password) {
         User user = new User();
-        String salt = ShaHashUtils.getRandomSalt(26);
+        String salt = ShaHashUtils.getRandomSalt();
         password = ShaHashUtils.encrypt(salt, password);
         user.setSalt(salt);
         user.setPassword(password);
-        this.baseMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>()
+            .eq(User::getUsername, username);
+        this.baseMapper.update(user, queryWrapper);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void resetPassword(String[] usernames) throws Exception {
+    public void resetPassword(String[] usernames) {
         for (String username : usernames) {
             User user = new User();
-            String salt = ShaHashUtils.getRandomSalt(26);
+            String salt = ShaHashUtils.getRandomSalt();
             String password = ShaHashUtils.encrypt(salt, User.DEFAULT_PASSWORD);
             user.setSalt(salt);
             user.setPassword(password);
-            this.baseMapper.update(user, new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>()
+                .eq(User::getUsername, username);
+            this.baseMapper.update(user, queryWrapper);
         }
     }
 
-    /**
-     * get user permissions by name
-     *
-     * @param username name
-     * @return permissions
-     */
     @Override
-    public Set<String> getPermissions(String username) {
-        List<Menu> permissionList = this.menuService.findUserPermissions(username);
-        return permissionList.stream().map(Menu::getPerms).collect(Collectors.toSet());
+    public Set<String> getPermissions(Long userId, @Nullable Long teamId) {
+        List<String> userPermissions = this.menuService.findUserPermissions(userId, teamId);
+        return new HashSet<>(userPermissions);
     }
 
     @Override
     public List<User> getNoTokenUser() {
         List<User> users = this.baseMapper.getNoTokenUser();
         if (!users.isEmpty()) {
-            users.forEach(u -> {
-                u.setPassword(null);
-                u.setSalt(null);
-                u.setRoleId(null);
-            });
+            users.forEach(User::dataMasking);
         }
         return users;
     }
 
-    private void setUserRoles(User user, String[] roles) {
-        Arrays.stream(roles).forEach(roleId -> {
-            UserRole ur = new UserRole();
-            ur.setUserId(user.getUserId());
-            ur.setRoleId(Long.valueOf(roleId));
-            this.userRoleService.save(ur);
-        });
+    @Override
+    public void setLastTeam(Long teamId, Long userId) {
+        User user = getById(userId);
+        AssertUtils.checkArgument(user != null);
+        user.setLastTeamId(teamId);
+        this.baseMapper.updateById(user);
     }
+
+    @Override
+    public void clearLastTeam(Long userId, Long teamId) {
+        User user = getById(userId);
+        AssertUtils.checkArgument(user != null);
+        if (!teamId.equals(user.getLastTeamId())) {
+            return;
+        }
+        this.baseMapper.clearLastTeamByUserId(userId);
+    }
+
+    @Override
+    public void clearLastTeam(Long teamId) {
+        this.baseMapper.clearLastTeamByTeamId(teamId);
+    }
+
+    @Override
+    public void fillInTeam(User user) {
+        if (user.getLastTeamId() == null) {
+            List<Team> teams = memberService.findUserTeams(user.getUserId());
+            if (CollectionUtils.isEmpty(teams)) {
+                throw new ApiAlertException("The current user not belong to any team, please contact the administrator!");
+            } else if (teams.size() == 1) {
+                Team team = teams.get(0);
+                user.setLastTeamId(team.getId());
+                this.baseMapper.updateById(user);
+            }
+        }
+    }
+
+    @Override
+    public List<User> findByAppOwner(Long teamId) {
+        return baseMapper.findByAppOwner(teamId);
+    }
+
+    /**
+     * generate user info, contains: 1.token, 2.vue router, 3.role, 4.permission, 5.personalized config info of frontend
+     *
+     * @param user user
+     * @return UserInfo
+     */
+    @Override
+    public Map<String, Object> generateFrontendUserInfo(User user, Long teamId, JWTToken token) {
+        AssertUtils.checkNotNull(user);
+        Map<String, Object> userInfo = new HashMap<>(8);
+
+        // 1) token & expire
+        if (token != null) {
+            userInfo.put("token", token.getToken());
+            userInfo.put("expire", token.getExpireAt());
+        }
+
+        // 2) user
+        user.dataMasking();
+        userInfo.put("user", user);
+
+        // 3) permissions
+        Set<String> permissions = this.getPermissions(user.getUserId(), teamId);
+        userInfo.put("permissions", permissions);
+
+        return userInfo;
+    }
+
 }

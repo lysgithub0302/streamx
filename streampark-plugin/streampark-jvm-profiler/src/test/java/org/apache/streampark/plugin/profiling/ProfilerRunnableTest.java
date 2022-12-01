@@ -17,14 +17,15 @@
 
 package org.apache.streampark.plugin.profiling;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ProfilerRunnableTest {
+class ProfilerRunnableTest {
+
     @Test
-    public void invokeRunnable() {
+    void invokeRunnable() {
         final AtomicInteger i = new AtomicInteger(10);
 
         ProfilerRunner profilerRunnable =
@@ -47,6 +48,6 @@ public class ProfilerRunnableTest {
 
         profilerRunnable.run();
 
-        Assert.assertEquals(11, i.get());
+        Assertions.assertEquals(11, i.get());
     }
 }

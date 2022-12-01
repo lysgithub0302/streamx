@@ -68,7 +68,7 @@ public class AccessTokenServiceImpl extends ServiceImpl<AccessTokenMapper, Acces
         }
 
         Long ttl = DateUtils.getTime(expireTime, DateUtils.fullFormat(), TimeZone.getDefault());
-        String token = WebUtils.encryptToken(JWTUtil.sign(user.getUsername(), UUID.randomUUID().toString(), ttl));
+        String token = WebUtils.encryptToken(JWTUtil.sign(user.getUserId(), user.getUsername(), UUID.randomUUID().toString(), ttl));
         JWTToken jwtToken = new JWTToken(token, expireTime);
 
         AccessToken accessToken = new AccessToken();
@@ -101,21 +101,18 @@ public class AccessTokenServiceImpl extends ServiceImpl<AccessTokenMapper, Acces
     @Override
     public boolean checkTokenEffective(Long userId, String token) {
         AccessToken res = baseMapper.getByUserToken(userId, token);
-        if (Objects.isNull(res) || AccessToken.STATUS_DISABLE.equals(res.getFinalStatus())) {
-            return false;
-        }
-        return true;
+        return res != null && AccessToken.STATUS_ENABLE.equals(res.getFinalStatus());
     }
 
     @Override
     public RestResponse toggleToken(Long tokenId) {
         AccessToken tokenInfo = baseMapper.getById(tokenId);
         if (Objects.isNull(tokenInfo)) {
-            return RestResponse.fail("accessToken could not be found!", ResponseCode.CODE_API_FAIL);
+            return RestResponse.fail("accessToken could not be found!", ResponseCode.CODE_FAIL_ALERT);
         }
 
         if (User.STATUS_LOCK.equals(tokenInfo.getUserStatus())) {
-            return RestResponse.fail("user status is locked, could not operate this accessToken!", ResponseCode.CODE_API_FAIL);
+            return RestResponse.fail("user status is locked, could not operate this accessToken!", ResponseCode.CODE_FAIL_ALERT);
         }
 
         Integer status = tokenInfo.getStatus().equals(AccessToken.STATUS_ENABLE) ? AccessToken.STATUS_DISABLE : AccessToken.STATUS_ENABLE;

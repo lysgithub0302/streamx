@@ -17,21 +17,21 @@
 
 package org.apache.streampark.plugin.profiling.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
 
-public class ReflectionUtilsTest {
+class ReflectionUtilsTest {
 
     @Test
-    public void executeStaticMethods()
+    void executeStaticMethods()
         throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException,
         InvocationTargetException {
         Object result =
             ReflectionUtils.executeStaticMethods(
                 "org.apache.streampark.plugin.profiling.util.ReflectionUtilsTest$ClassB", "getClassA.method1");
-        Assert.assertEquals("hello", result);
+        Assertions.assertEquals("hello", result);
     }
 
     static class ClassA {

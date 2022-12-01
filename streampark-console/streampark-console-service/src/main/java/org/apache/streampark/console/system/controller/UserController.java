@@ -17,10 +17,15 @@
 
 package org.apache.streampark.console.system.controller;
 
+import org.apache.streampark.console.base.domain.ResponseCode;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.domain.RestResponse;
 import org.apache.streampark.console.base.util.ShaHashUtils;
+import org.apache.streampark.console.core.enums.UserType;
+import org.apache.streampark.console.core.service.CommonService;
+import org.apache.streampark.console.system.entity.Team;
 import org.apache.streampark.console.system.entity.User;
+import org.apache.streampark.console.system.service.TeamService;
 import org.apache.streampark.console.system.service.UserService;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -42,6 +47,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Validated
@@ -51,6 +57,12 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private TeamService teamService;
+
+    @Autowired
+    private CommonService commonService;
 
     @PostMapping("detail")
     public User detail(@NotBlank(message = "{required}") @PathVariable String username) {
@@ -80,8 +92,8 @@ public class UserController {
 
     @DeleteMapping("delete")
     @RequiresPermissions("user:delete")
-    public RestResponse deleteUsers(Long userId) {
-        this.userService.removeById(userId);
+    public RestResponse deleteUser(Long userId) throws Exception {
+        this.userService.deleteUser(userId);
         return RestResponse.success();
     }
 
@@ -140,6 +152,48 @@ public class UserController {
         String[] usernameArr = usernames.split(StringPool.COMMA);
         this.userService.resetPassword(usernameArr);
         return RestResponse.success();
+    }
+
+    @PostMapping("types")
+    @RequiresPermissions("user:types")
+    public RestResponse userTypes() {
+        return RestResponse.success(UserType.values());
+    }
+
+    @PostMapping("initTeam")
+    public RestResponse initTeam(Long teamId, Long userId) {
+        Team team = teamService.getById(teamId);
+        if (team == null) {
+            return RestResponse.fail("teamId is invalid", ResponseCode.CODE_FAIL_ALERT);
+        }
+        userService.setLastTeam(teamId, userId);
+        return RestResponse.success();
+    }
+
+    @PostMapping("setTeam")
+    public RestResponse setTeam(Long teamId) {
+        Team team = teamService.getById(teamId);
+        if (team == null) {
+            return RestResponse.fail("teamId is invalid", ResponseCode.CODE_FAIL_ALERT);
+        }
+
+        User user = commonService.getCurrentUser();
+
+        //1) set the latest team
+        userService.setLastTeam(teamId, user.getUserId());
+
+        //2) get latest userInfo
+        user.dataMasking();
+
+        Map<String, Object> infoMap = userService.generateFrontendUserInfo(user, teamId, null);
+        return new RestResponse().data(infoMap);
+    }
+
+    @PostMapping("appOwners")
+    public RestResponse appOwners(Long teamId) {
+        List<User> userList = userService.findByAppOwner(teamId);
+        userList.forEach(User::dataMasking);
+        return RestResponse.success(userList);
     }
 
 }

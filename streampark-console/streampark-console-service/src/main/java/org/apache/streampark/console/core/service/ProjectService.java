@@ -38,11 +38,11 @@ public interface ProjectService extends IService<Project> {
 
     IPage<Project> page(Project project, RestRequest restRequest);
 
-    void build(Long id, String socketId) throws Exception;
+    Boolean existsByTeamId(Long teamId);
 
-    void tailBuildLog(Long id);
+    void build(Long id) throws Exception;
 
-    void closeBuildLog(Long id);
+    RestResponse getBuildLog(Long id, Long startOffset);
 
     List<String> modules(Long id);
 

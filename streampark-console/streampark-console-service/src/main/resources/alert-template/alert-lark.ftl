@@ -8,7 +8,7 @@
       "elements": [
         {
           "tag": "plain_text",
-          "content": "StreamPark , Make stream processing easier!"
+          "content": "Apache StreamPark , Make stream processing easier!"
         }
       ]
     },
@@ -21,7 +21,7 @@
       "elements": [
         {
           "tag": "plain_text",
-          "content": "I'm sorry to inform you that something wrong with your task"
+          "content": "Oops! I'm sorry to inform you that something wrong with your app"
         }
       ]
     },
@@ -147,7 +147,7 @@
             "content": "Website"
           },
           "type": "primary",
-          "url": "http://streampark.apache.org"
+          "url": "https://streampark.apache.org"
         },
         {
           "tag": "button",
@@ -156,7 +156,7 @@
             "content": "GitHub"
           },
           "type": "primary",
-          "url": "https://github.com/apache/streampark"
+          "url": "https://github.com/apache/incubator-streampark"
         }
       ]
     }

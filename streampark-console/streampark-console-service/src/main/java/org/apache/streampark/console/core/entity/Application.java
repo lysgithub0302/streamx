@@ -79,6 +79,8 @@ public class Application implements Serializable {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    private Long teamId;
+
     /**
      * 1) custom code
      * 2) flink SQL
@@ -99,6 +101,7 @@ public class Application implements Serializable {
     @TableField(updateStrategy = FieldStrategy.IGNORED)
     private String appId;
 
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private String jobId;
 
     /**
@@ -166,7 +169,7 @@ public class Application implements Serializable {
     private String hotParams;
     private Integer resolveOrder;
     private Integer executionMode;
-    private String dynamicOptions;
+    private String dynamicProperties;
     private Integer appType;
     private Boolean flameGraph;
 
@@ -226,6 +229,7 @@ public class Application implements Serializable {
     /**
      * the cluster id bound to the task in remote mode
      */
+    @TableField(updateStrategy = FieldStrategy.IGNORED)
     private Long flinkClusterId;
 
     private String description;
@@ -294,7 +298,6 @@ public class Application implements Serializable {
     private transient String createTimeTo;
     private transient String backUpDescription;
     private transient String yarnQueue;
-    private transient String yarnSessionClusterId;
 
     /**
      * Flink Web UI Url
@@ -398,12 +401,10 @@ public class Application implements Serializable {
         return ExecutionMode.of(executionMode);
     }
 
-    @JsonIgnore
     public boolean cpFailedTrigger() {
         return this.cpMaxFailureInterval != null && this.cpFailureRateInterval != null && this.cpFailureAction != null;
     }
 
-    @JsonIgnore
     public boolean eqFlinkJob(Application other) {
         if (this.isFlinkSqlJob() && other.isFlinkSqlJob()) {
             if (this.getFlinkSql().trim().equals(other.getFlinkSql().trim())) {
@@ -419,7 +420,7 @@ public class Application implements Serializable {
     @JsonIgnore
     public String getDistHome() {
         String path = String.format("%s/%s/%s",
-            Workspace.local().APP_LOCAL_DIST(),
+            Workspace.APP_LOCAL_DIST(),
             projectId.toString(),
             getModule()
         );
@@ -482,7 +483,10 @@ public class Application implements Serializable {
     @SneakyThrows
     @SuppressWarnings("unchecked")
     public Map<String, Object> getOptionMap() {
-        Map<String, Object> map = JacksonUtils.read(getOptions(), Map.class);
+        if (StringUtils.isBlank(this.options)) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> map = JacksonUtils.read(this.options, Map.class);
         map.entrySet().removeIf(entry -> entry.getValue() == null);
         return map;
     }
@@ -543,7 +547,6 @@ public class Application implements Serializable {
     /**
      * Parameter comparison, mainly to compare whether the parameters related to Flink runtime have changed
      */
-    @JsonIgnore
     public boolean eqJobParam(Application other) {
         // 1) Resolve Order has it changed
         // 2) flink Version has it changed
@@ -551,7 +554,7 @@ public class Application implements Serializable {
         // 4) Parallelism has it changed
         // 5) Task Slots has it changed
         // 6) Options has it changed
-        // 7) Dynamic Option has it changed
+        // 7) properties has it changed
         // 8) Program Args has it changed
         // 9) Flink Version  has it changed
 
@@ -586,15 +589,15 @@ public class Application implements Serializable {
             return false;
         }
 
-        if (this.getDynamicOptions() != null) {
-            if (other.getDynamicOptions() != null) {
-                if (!this.getDynamicOptions().trim().equals(other.getDynamicOptions().trim())) {
+        if (this.getDynamicProperties() != null) {
+            if (other.getDynamicProperties() != null) {
+                if (!this.getDynamicProperties().trim().equals(other.getDynamicProperties().trim())) {
                     return false;
                 }
             } else {
                 return false;
             }
-        } else if (other.getDynamicOptions() != null) {
+        } else if (other.getDynamicProperties() != null) {
             return false;
         }
 
@@ -631,10 +634,12 @@ public class Application implements Serializable {
         }
     }
 
+    @JsonIgnore
     public FsOperator getFsOperator() {
         return FsOperator.of(getStorageType());
     }
 
+    @JsonIgnore
     public Workspace getWorkspace() {
         return Workspace.of(getStorageType());
     }
@@ -651,27 +656,11 @@ public class Application implements Serializable {
         return Collections.EMPTY_MAP;
     }
 
-    @JsonIgnore
     @SneakyThrows
     public void doSetHotParams() {
-        Map<String, String> hotParams = new HashMap<>();
-        ExecutionMode executionModeEnum = this.getExecutionModeEnum();
-        if (ExecutionMode.YARN_APPLICATION.equals(executionModeEnum)) {
-            if (StringUtils.isNotEmpty(this.getYarnQueue())) {
-                hotParams.put(ConfigConst.KEY_YARN_APP_QUEUE(), this.getYarnQueue());
-            }
-        }
-        if (ExecutionMode.YARN_SESSION.equals(executionModeEnum)) {
-            if (StringUtils.isNotEmpty(this.getYarnSessionClusterId())) {
-                hotParams.put("yarn.application.id", this.getYarnSessionClusterId());
-            }
-        }
-        if (!hotParams.isEmpty()) {
-            this.setHotParams(JacksonUtils.write(hotParams));
-        }
+        updateHotParams(this);
     }
 
-    @JsonIgnore
     @SneakyThrows
     public void updateHotParams(Application appParam) {
         ExecutionMode executionModeEnum = appParam.getExecutionModeEnum();
@@ -681,12 +670,9 @@ public class Application implements Serializable {
                 hotParams.put(ConfigConst.KEY_YARN_APP_QUEUE(), appParam.getYarnQueue());
             }
         }
-        if (ExecutionMode.YARN_SESSION.equals(executionModeEnum)) {
-            if (StringUtils.isNotEmpty(appParam.getYarnSessionClusterId())) {
-                hotParams.put(ConfigConst.KEY_YARN_APP_ID(), appParam.getYarnSessionClusterId());
-            }
+        if (!hotParams.isEmpty()) {
+            this.setHotParams(JacksonUtils.write(hotParams));
         }
-        this.setHotParams(JacksonUtils.write(hotParams));
     }
 
     @Data
@@ -694,7 +680,6 @@ public class Application implements Serializable {
         private List<Pom> pom = Collections.emptyList();
         private List<String> jar = Collections.emptyList();
 
-        @JsonIgnore
         @SneakyThrows
         public static Dependency toDependency(String dependency) {
             if (Utils.notEmpty(dependency)) {
@@ -730,7 +715,6 @@ public class Application implements Serializable {
             return new HashSet<>(pom).containsAll(other.pom);
         }
 
-        @JsonIgnore
         public DependencyInfo toJarPackDeps() {
             List<Artifact> mvnArts = this.pom.stream()
                 .map(pom -> new Artifact(pom.getGroupId(), pom.getArtifactId(), pom.getVersion()))
@@ -741,6 +725,22 @@ public class Application implements Serializable {
             return new DependencyInfo(mvnArts, extJars);
         }
 
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        return id.equals(((Application) o).id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     @Data

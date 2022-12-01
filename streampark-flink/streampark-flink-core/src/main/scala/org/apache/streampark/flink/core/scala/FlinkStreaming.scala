@@ -19,6 +19,7 @@ package org.apache.streampark.flink.core.scala
 
 import org.apache.streampark.common.conf.ConfigConst._
 import org.apache.streampark.common.util.{Logger, SystemPropertyUtils}
+import org.apache.streampark.flink.core.EnhancerImplicit._
 import org.apache.streampark.flink.core.{FlinkStreamingInitializer, StreamEnvConfig}
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -38,7 +39,7 @@ class StreamingContext(val parameter: ParameterTool, private val environment: St
   /**
    * for Java
    */
-  def this(args: StreamEnvConfig) = this(FlinkStreamingInitializer.initJavaStream(args))
+  def this(args: StreamEnvConfig) = this(FlinkStreamingInitializer.initialize(args))
 
   /**
    * Recommend use this Api to start task
@@ -46,11 +47,7 @@ class StreamingContext(val parameter: ParameterTool, private val environment: St
   def start(): JobExecutionResult = execute()
 
   @deprecated override def execute(): JobExecutionResult = {
-    val appName = (parameter.get(KEY_APP_NAME(), null), parameter.get(KEY_FLINK_APP_NAME, null)) match {
-      case (appName: String, _) => appName
-      case (null, appName: String) => appName
-      case _ => ""
-    }
+    val appName = parameter.getAppName(required = true)
     execute(appName)
   }
 
@@ -83,7 +80,7 @@ trait FlinkStreaming extends Serializable with Logger {
 
   private[this] def init(args: Array[String]): Unit = {
     SystemPropertyUtils.setAppHome(KEY_APP_HOME, classOf[FlinkStreaming])
-    context = new StreamingContext(FlinkStreamingInitializer.initStream(args, config))
+    context = new StreamingContext(FlinkStreamingInitializer.initialize(args, config))
   }
 
   def ready(): Unit = {}

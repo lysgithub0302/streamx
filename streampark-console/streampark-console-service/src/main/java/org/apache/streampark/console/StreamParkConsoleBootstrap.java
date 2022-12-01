@@ -21,7 +21,6 @@ import org.apache.streampark.common.util.SystemPropertyUtils;
 import org.apache.streampark.console.base.util.CommonUtils;
 
 import lombok.extern.slf4j.Slf4j;
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.ApplicationPidFileWriter;
@@ -32,28 +31,24 @@ import java.io.File;
 /**
  * <pre>
  *
- *               .+.
- *         _____/ /_________  ____ _____ ___  _  __
- *        / ___/ __/ ___/ _ \/ __ `/ __ `__ \| |/_/
- *       (__  ) /_/ /  /  __/ /_/ / / / / / />   <
- *      /____/\__/_/   \___/\__,_/_/ /_/ /_/_/|_|
- *                                            |/
- *                                            .
+ *      _____ __                                             __
+ *     / ___// /_________  ____ _____ ___  ____  ____ ______/ /__
+ *     \__ \/ __/ ___/ _ \/ __ `/ __ `__ \/ __ \  __ `/ ___/ //_/
+ *    ___/ / /_/ /  /  __/ /_/ / / / / / / /_/ / /_/ / /  / ,<
+ *   /____/\__/_/   \___/\__,_/_/ /_/ /_/ ____/\__,_/_/  /_/|_|
+ *                                     /_/
  *
- *      WebSite:  http://streampark.apache.org
- *      GitHub :  https://github.com/apache/streampark
+ *   WebSite:  https://streampark.apache.org
+ *   GitHub :  https://github.com/apache/incubator-streampark
  *
- *      [StreamPark] Make stream processing easier ô~ô!
- *
+ *   [StreamPark] Make stream processing easier ô~ô!
  *
  * </pre>
  *
- * @author benjobs
  */
 @Slf4j
 @SpringBootApplication
 @EnableScheduling
-@MapperScan(value = {"org.apache.streampark.console.*.mapper"})
 public class StreamParkConsoleBootstrap {
 
     public static void main(String[] args) {

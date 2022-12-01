@@ -22,12 +22,17 @@ import org.apache.streampark.console.core.entity.Setting;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public interface SettingService extends IService<Setting> {
 
+    Map<String, Setting> SETTINGS = new ConcurrentHashMap<>();
+
+    String KEY_MAVEN_SETTINGS = "streampark.maven.settings";
     String KEY_MAVEN_REPOSITORY = "streampark.maven.central.repository";
     String KEY_MAVEN_AUTH_USER = "streampark.maven.auth.user";
     String KEY_MAVEN_AUTH_PASSWORD = "streampark.maven.auth.password";
-
     String KEY_STREAMPARK_ADDRESS = "streampark.console.webapp.address";
 
     String KEY_ALERT_EMAIL_HOST = "alert.email.host";
@@ -43,11 +48,15 @@ public interface SettingService extends IService<Setting> {
 
     String KEY_DOCKER_REGISTER_NAMESPACE = "docker.register.namespace";
 
+    String KEY_INGRESS_MODE_DEFAULT = "ingress.mode.default";
+
     Setting get(String key);
 
     boolean update(Setting setting);
 
     String getStreamParkAddress();
+
+    String getMavenSettings();
 
     String getMavenRepository();
 
@@ -64,4 +73,6 @@ public interface SettingService extends IService<Setting> {
     String getDockerRegisterPassword();
 
     String getDockerRegisterNamespace();
+
+    String getIngressModeDefault();
 }

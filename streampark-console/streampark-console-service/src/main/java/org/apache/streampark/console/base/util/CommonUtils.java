@@ -17,7 +17,7 @@
 
 package org.apache.streampark.console.base.util;
 
-import org.apache.streampark.common.util.AssertUtils;
+import  org.apache.streampark.common.util.AssertUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cglib.beans.BeanMap;
@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,7 +51,7 @@ public final class CommonUtils implements Serializable {
 
     private static final long serialVersionUID = 6458428317155311192L;
 
-    private static String os = System.getProperty("os.name").toLowerCase();
+    private static final String OS = System.getProperty("os.name").toLowerCase();
 
     /**
      * is empty
@@ -279,7 +280,7 @@ public final class CommonUtils implements Serializable {
     public static <E> Iterator<E> toIterator(Enumeration<E> enumeration) {
         @SuppressWarnings("hiding")
         class EnumerationIterator<E> implements Iterator<E> {
-            private Enumeration<E> enumeration;
+            private final Enumeration<E> enumeration;
 
             public EnumerationIterator(Enumeration<E> enumeration) {
                 this.enumeration = enumeration;
@@ -305,75 +306,75 @@ public final class CommonUtils implements Serializable {
     }
 
     public static String getOsName() {
-        return os;
+        return OS;
     }
 
     public static boolean isLinux() {
-        return os.indexOf("linux") >= 0;
+        return OS.indexOf("linux") >= 0;
     }
 
     public static boolean isMacOS() {
-        return os.indexOf("mac") >= 0 && os.indexOf("os") > 0 && os.indexOf("x") < 0;
+        return OS.indexOf("mac") >= 0 && OS.indexOf("os") > 0 && OS.indexOf("x") < 0;
     }
 
     public static boolean isMacOSX() {
-        return os.indexOf("mac") >= 0 && os.indexOf("os") > 0 && os.indexOf("x") > 0;
+        return OS.indexOf("mac") >= 0 && OS.indexOf("os") > 0 && OS.indexOf("x") > 0;
     }
 
     public static boolean isWindows() {
-        return os.indexOf("windows") >= 0;
+        return OS.indexOf("windows") >= 0;
     }
 
     public static boolean isOS2() {
-        return os.indexOf("os/2") >= 0;
+        return OS.indexOf("os/2") >= 0;
     }
 
     public static boolean isSolaris() {
-        return os.indexOf("solaris") >= 0;
+        return OS.indexOf("solaris") >= 0;
     }
 
     public static boolean isSunOS() {
-        return os.indexOf("sunos") >= 0;
+        return OS.indexOf("sunos") >= 0;
     }
 
     public static boolean isMPEiX() {
-        return os.indexOf("mpe/ix") >= 0;
+        return OS.indexOf("mpe/ix") >= 0;
     }
 
     public static boolean isHPUX() {
-        return os.indexOf("hp-ux") >= 0;
+        return OS.indexOf("hp-ux") >= 0;
     }
 
     public static boolean isAix() {
-        return os.indexOf("aix") >= 0;
+        return OS.indexOf("aix") >= 0;
     }
 
     public static boolean isOS390() {
-        return os.indexOf("os/390") >= 0;
+        return OS.indexOf("os/390") >= 0;
     }
 
     public static boolean isFreeBSD() {
-        return os.indexOf("freebsd") >= 0;
+        return OS.indexOf("freebsd") >= 0;
     }
 
     public static boolean isIrix() {
-        return os.indexOf("irix") >= 0;
+        return OS.indexOf("irix") >= 0;
     }
 
     public static boolean isDigitalUnix() {
-        return os.indexOf("digital") >= 0 && os.indexOf("unix") > 0;
+        return OS.indexOf("digital") >= 0 && OS.indexOf("unix") > 0;
     }
 
     public static boolean isNetWare() {
-        return os.indexOf("netware") >= 0;
+        return OS.indexOf("netware") >= 0;
     }
 
     public static boolean isOSF1() {
-        return os.indexOf("osf1") >= 0;
+        return OS.indexOf("osf1") >= 0;
     }
 
     public static boolean isOpenVMS() {
-        return os.indexOf("openvms") >= 0;
+        return OS.indexOf("openvms") >= 0;
     }
 
     public static boolean isUnix() {
@@ -430,7 +431,7 @@ public final class CommonUtils implements Serializable {
     }
 
     /**
-     * linux内核平台 1 window： 2 其他平台 0
+     * linux kernel platform 1 window: 2 other platforms 0
      */
     public static int getPlatform() {
         int platform = 0;
@@ -637,4 +638,12 @@ public final class CommonUtils implements Serializable {
         }
     }
 
+    public static boolean isLegalUrl(String url) {
+        try {
+            new URI(url);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
 }

@@ -49,7 +49,7 @@ object KubernetesNativeSessionSubmit extends KubernetesNativeSubmitTrait with Lo
     // require parameters
     require(
       StringUtils.isNotBlank(submitRequest.k8sSubmitParam.clusterId),
-      s"[flink-submit] stop flink job failed, clusterId is null, mode=${flinkConfig.get(DeploymentOptions.TARGET)}"
+      s"[flink-submit] submit flink job failed, clusterId is null, mode=${flinkConfig.get(DeploymentOptions.TARGET)}"
     )
     super.trySubmit(submitRequest, flinkConfig, submitRequest.userJarFile)(restApiSubmit)(jobGraphSubmit)
   }
@@ -130,21 +130,14 @@ object KubernetesNativeSessionSubmit extends KubernetesNativeSubmitTrait with Lo
          |    exposedType      : ${deployRequest.k8sDeployParam.flinkRestExposedType}
          |    serviceAccount   : ${deployRequest.k8sDeployParam.serviceAccount}
          |    flinkImage       : ${deployRequest.k8sDeployParam.flinkImage}
-         |    resolveOrder     : ${deployRequest.resolveOrder.getName}
-         |    flameGraph       : ${deployRequest.flameGraph != null}
-         |    dynamicOption    : ${deployRequest.dynamicOption.mkString(" ")}
+         |    properties       : ${deployRequest.properties.mkString(" ")}
          |-------------------------------------------------------------------------------------------
          |""".stripMargin)
     var clusterDescriptor: KubernetesClusterDescriptor = null
     var client: ClusterClient[String] = null
     var kubeClient: FlinkKubeClient = null
     try {
-      val flinkConfig = extractConfiguration(
-        deployRequest.flinkVersion.flinkHome,
-        deployRequest.dynamicOption,
-        deployRequest.extraParameter,
-        deployRequest.resolveOrder)
-
+      val flinkConfig = extractConfiguration(deployRequest.flinkVersion.flinkHome, deployRequest.properties)
       flinkConfig
         .safeSet(DeploymentOptions.TARGET, KubernetesDeploymentTarget.SESSION.getName)
         .safeSet(KubernetesConfigOptions.NAMESPACE, deployRequest.k8sDeployParam.kubernetesNamespace)
@@ -164,7 +157,7 @@ object KubernetesNativeSessionSubmit extends KubernetesNativeSubmitTrait with Lo
         client = clusterDescriptor.deploySessionCluster(kubernetesClusterDescriptor._2).getClusterClient
       }
       if (client.getWebInterfaceURL != null) {
-        DeployResponse(client.getWebInterfaceURL, client.getClusterId.toString)
+        DeployResponse(client.getWebInterfaceURL, client.getClusterId)
       } else {
         null
       }
@@ -181,7 +174,7 @@ object KubernetesNativeSessionSubmit extends KubernetesNativeSubmitTrait with Lo
     var kubeClient: FlinkKubeClient = null
     try {
       val flinkConfig = getFlinkDefaultConfiguration(shutDownRequest.flinkVersion.flinkHome)
-      shutDownRequest.extraParameter.foreach(m => m._2 match {
+      shutDownRequest.properties.foreach(m => m._2 match {
         case v if v != null => flinkConfig.setString(m._1, m._2.toString)
         case _ =>
       })

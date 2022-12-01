@@ -21,7 +21,6 @@ import org.apache.streampark.console.base.util.WebUtils;
 import org.apache.streampark.console.system.entity.AccessToken;
 import org.apache.streampark.console.system.entity.User;
 import org.apache.streampark.console.system.service.AccessTokenService;
-import org.apache.streampark.console.system.service.RoleService;
 import org.apache.streampark.console.system.service.UserService;
 
 import org.apache.commons.lang3.StringUtils;
@@ -47,9 +46,6 @@ public class ShiroRealm extends AuthorizingRealm {
     private UserService userService;
 
     @Autowired
-    private RoleService roleService;
-
-    @Autowired
     private AccessTokenService accessTokenService;
 
     @Override
@@ -58,43 +54,39 @@ public class ShiroRealm extends AuthorizingRealm {
     }
 
     /**
-     * ` 授权模块，获取用户角色和权限
+     * Authorization module to get user roles and permissions
      *
      * @param token token
-     * @return AuthorizationInfo 权限信息
+     * @return AuthorizationInfo permission information
      */
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection token) {
-        String username = JWTUtil.getUsername(token.toString());
+        Long userId = JWTUtil.getUserId(token.toString());
 
         SimpleAuthorizationInfo simpleAuthorizationInfo = new SimpleAuthorizationInfo();
 
-        // 获取用户角色集
-        Set<String> roleSet = roleService.getUserRoleName(username);
-        simpleAuthorizationInfo.setRoles(roleSet);
-
-        // 获取用户权限集
-        Set<String> permissionSet = userService.getPermissions(username);
+        // Get user permission set
+        Set<String> permissionSet = userService.getPermissions(userId, null);
         simpleAuthorizationInfo.setStringPermissions(permissionSet);
         return simpleAuthorizationInfo;
     }
 
     /**
-     * 用户认证
+     * User Authentication
      *
-     * @param authenticationToken 身份认证 token
-     * @return AuthenticationInfo 身份认证信息
-     * @throws AuthenticationException 认证相关异常
+     * @param authenticationToken authentication token
+     * @return AuthenticationInfo authentication information
+     * @throws AuthenticationException authentication related exceptions
      */
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authenticationToken) throws AuthenticationException {
-        // 这里的 token是从 JWTFilter 的 executeLogin 方法传递过来的，已经经过了解密
+        // The token here is passed from the executeLogin method of JWTFilter and has been decrypted
         String token = (String) authenticationToken.getCredentials();
-        String username = JWTUtil.getUsername(token);
+        String username = JWTUtil.getUserName(token);
         if (StringUtils.isBlank(username)) {
             throw new AuthenticationException("Token verification failed");
         }
-        // 通过用户名查询用户信息
+        // Query user information by username
         User user = userService.findByName(username);
 
         if (user == null) {
@@ -102,7 +94,7 @@ public class ShiroRealm extends AuthorizingRealm {
         }
 
         if (!JWTUtil.verify(token, username, user.getPassword())) {
-            //校验是否属于api的token，权限是否有效
+            // Check whether the token belongs to the api and whether the permission is valid
             String tokenDb = WebUtils.encryptToken(token);
             boolean effective = accessTokenService.checkTokenEffective(user.getUserId(), tokenDb);
             if (!effective) {

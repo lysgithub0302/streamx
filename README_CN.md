@@ -2,7 +2,7 @@
     <br/>
     <h1>
         <a href="https://streampark.apache.org" target="_blank" rel="noopener noreferrer">
-        <img width="600" src="https://streampark.apache.org/image/logo1.svg" alt="StreamPark logo">
+        <img width="600" src="https://streampark.apache.org/image/logo_name.png" alt="StreamPark logo">
         </a>
     </h1>
     <strong style="font-size: 1.5rem">Make stream processing easier!!!</strong>
@@ -51,7 +51,7 @@ Make stream processing easier
 * 多版本 Flink & Spark 支持
 * Scala 2.11 / 2.12 支持
 * 一站式的流任务管理平台
-* 支持不限于 Catalog、OLAP、process-warehouse
+* 支持不限于 Catalog、OLAP、streaming-warehouse
 * ...
 
 ![](https://streampark.apache.org/image/dashboard.png)
@@ -64,9 +64,9 @@ Make stream processing easier
 
 ## 💋 谁在使用
 
-诸多公司和组织将 StreamPark 用于研究、生产和商业产品中，如果您也在使用 ? 可以在[这里添加](https://github.com/apache/streampark/issues/163)
+诸多公司和组织将 StreamPark 用于研究、生产和商业产品中，如果您也在使用 ? 可以在[这里添加](https://github.com/apache/incubator-streampark/issues/163)
 
-![image](https://user-images.githubusercontent.com/13284744/182794423-b77a09dd-ed45-4e87-a1bb-2a4646951f22.png)
+![我们的用户](https://streampark.apache.org/image/users.png)
 
 ## 🏆 我们的荣誉
 
@@ -78,15 +78,15 @@ Make stream processing easier
 
 ## 🤝 我要贡献
 
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/apache/streampark/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/apache/incubator-streampark/pulls)
 
-如果你希望参与贡献 欢迎 [Pull Request](https://github.com/apache/streampark/pulls)，或给我们 [报告 Bug](https://github.com/apache/streampark/issues/new/choose)。
+如果你希望参与贡献 欢迎 [Pull Request](https://github.com/apache/incubator-streampark/pulls)，或给我们 [报告 Bug](https://github.com/apache/incubator-streampark/issues/new/choose)。
 
 > 强烈推荐阅读 [《提问的智慧》](https://github.com/ryanhanwu/How-To-Ask-Questions-The-Smart-Way)(**本指南不提供此项目的实际支持服务！**)、[《如何有效地报告 Bug》](http://www.chiark.greenend.org.uk/%7Esgtatham/bugs-cn.html)、[《如何向开源项目提交无法解答的问题》](https://zhuanlan.zhihu.com/p/25795393)，更好的问题更容易获得帮助。
 
 感谢所有向 StreamPark 贡献的朋友!
 
-<a href="https://github.com/apache/streampark/graphs/contributors">
+<a href="https://github.com/apache/incubator-streampark/graphs/contributors">
     <img src="https://contrib.rocks/image?repo=apache/streampark" />
 </a>
 

@@ -22,12 +22,8 @@ import java.util.{Map => JavaMap}
 import org.apache.streampark.common.domain.FlinkVersion
 import org.apache.streampark.common.enums.ExecutionMode
 
-/**
-  * Created by xxyykkxx on 2022/4/8.
-  */
 case class ShutDownRequest(flinkVersion: FlinkVersion,
                             executionMode: ExecutionMode,
                             clusterId: String,
                             @Nullable kubernetesDeployParam: KubernetesDeployParam,
-                            @Nullable extraParameter: JavaMap[String, Any]
-                          )
+                            @Nullable properties: JavaMap[String, Any])

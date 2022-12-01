@@ -25,7 +25,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,7 +44,8 @@ public class ApplicationConfig {
 
     /**
      * 1)yaml <br>
-     * 2)prop
+     * 2)prop <br>
+     * 3)hocon
      */
     private Integer format;
 
@@ -74,16 +74,31 @@ public class ApplicationConfig {
         application.setFormat(this.format);
     }
 
-    @JsonIgnore
     public Map<String, String> readConfig() {
-        switch (this.getFormat()) {
+        switch (this.format) {
             case 1:
                 return PropertiesUtils.fromYamlTextAsJava(DeflaterUtils.unzipString(this.content));
             case 2:
                 return PropertiesUtils.fromPropertiesTextAsJava(DeflaterUtils.unzipString(this.content));
+            case 3:
+                return PropertiesUtils.fromHoconTextAsJava(DeflaterUtils.unzipString(this.content));
             default:
                 break;
         }
         return null;
     }
+
+    public String configType() {
+        switch (this.format) {
+            case 1:
+                return "yaml";
+            case 2:
+                return "prop";
+            case 3:
+                return "conf";
+            default:
+                throw new IllegalArgumentException("getConfigType error, format must be (1|2|3), detail: 1:yaml, 2:properties, 3:hocon");
+        }
+    }
+
 }

@@ -24,17 +24,22 @@ import java.io.Serializable;
  */
 public enum ClusterState implements Serializable {
     /**
-     * 集群刚创建但未启动
+     * The cluster was just created but not started
      */
     CREATED(0),
     /**
-     * 集群已启动
+     * cluster started
      */
     STARTED(1),
     /**
-     * 集群已停止
+     * cluster stopped
      */
-    STOPED(2);
+    STOPED(2),
+
+    /**
+     * cluster lost
+     */
+    LOST(3);
 
     private final Integer value;
 

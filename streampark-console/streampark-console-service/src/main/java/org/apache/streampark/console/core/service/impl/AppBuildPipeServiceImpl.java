@@ -23,6 +23,7 @@ import org.apache.streampark.common.enums.ApplicationType;
 import org.apache.streampark.common.enums.DevelopmentMode;
 import org.apache.streampark.common.enums.ExecutionMode;
 import org.apache.streampark.common.fs.FsOperator;
+import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.common.util.ExceptionUtils;
 import org.apache.streampark.common.util.FileUtils;
 import org.apache.streampark.common.util.ThreadUtils;
@@ -68,11 +69,10 @@ import org.apache.streampark.flink.packer.pipeline.impl.FlinkK8sSessionBuildPipe
 import org.apache.streampark.flink.packer.pipeline.impl.FlinkRemoteBuildPipeline;
 import org.apache.streampark.flink.packer.pipeline.impl.FlinkYarnApplicationBuildPipeline;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +83,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Nonnull;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -92,13 +93,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-/**
- * @author Al-assad
- */
 @Service
 @Slf4j
 @Transactional(propagation = Propagation.SUPPORTS, rollbackFor = Exception.class)
-@SuppressWarnings("SpringJavaAutowiredFieldsWarningInspection")
 public class AppBuildPipeServiceImpl
     extends ServiceImpl<ApplicationBuildPipelineMapper, AppBuildPipeline> implements AppBuildPipeService {
 
@@ -127,11 +124,11 @@ public class AppBuildPipeServiceImpl
     private ApplicationConfigService applicationConfigService;
 
     private final ExecutorService executorService = new ThreadPoolExecutor(
-        Runtime.getRuntime().availableProcessors() * 2,
-        300,
+        Runtime.getRuntime().availableProcessors() * 5,
+        Runtime.getRuntime().availableProcessors() * 10,
         60L,
         TimeUnit.SECONDS,
-        new LinkedBlockingQueue<>(2048),
+        new LinkedBlockingQueue<>(1024),
         ThreadUtils.threadFactory("streampark-build-pipeline-executor"),
         new ThreadPoolExecutor.AbortPolicy()
     );
@@ -153,7 +150,7 @@ public class AppBuildPipeServiceImpl
         FlinkSql effectiveFlinkSql = flinkSqlService.getEffective(app.getId(), false);
         if (app.isFlinkSqlJob()) {
             FlinkSql flinkSql = newFlinkSql == null ? effectiveFlinkSql : newFlinkSql;
-            assert flinkSql != null;
+            AssertUtils.state(flinkSql != null);
             app.setDependency(flinkSql.getDependency());
         }
 
@@ -210,7 +207,7 @@ public class AppBuildPipeServiceImpl
                         //copy jar to local upload dir
                         for (String jar : app.getDependencyObject().getJar()) {
                             File localJar = new File(WebUtils.getAppTempDir(), jar);
-                            assert localJar.exists();
+                            AssertUtils.state(localJar.exists());
                             String localUploads = Workspace.local().APP_UPLOADS();
                             String uploadJar = localUploads.concat("/").concat(jar);
                             checkOrElseUploadJar(FsOperator.lfs(), localJar, uploadJar, localUploads);
@@ -236,11 +233,11 @@ public class AppBuildPipeServiceImpl
                     } else {
                         app.setOptionState(OptionState.NONE.getValue());
                         app.setLaunch(LaunchState.DONE.get());
-                        //如果当前任务未运行,或者刚刚新增的任务,则直接将候选版本的设置为正式版本
+                        // If the current task is not running, or the task has just been added, directly set the candidate version to the official version
                         if (app.isFlinkSqlJob()) {
                             applicationService.toEffective(app);
                         } else {
-                            if (app.isStreamXJob()) {
+                            if (app.isStreamParkJob()) {
                                 ApplicationConfig config = applicationConfigService.getLatest(app.getId());
                                 if (config != null) {
                                     config.setToApplication(app);
@@ -262,7 +259,7 @@ public class AppBuildPipeServiceImpl
 
                 } else {
                     Message message = new Message(
-                        commonService.getCurrentUser().getUserId(),
+                        commonService.getUserId(),
                         app.getId(),
                         app.getJobName().concat(" launch failed"),
                         ExceptionUtils.stringifyException(snapshot.error().exception()),
@@ -389,7 +386,8 @@ public class AppBuildPipeServiceImpl
                 log.info("Submit params to building pipeline : {}", k8sApplicationBuildRequest);
                 return FlinkK8sApplicationBuildPipeline.of(k8sApplicationBuildRequest);
             default:
-                throw new UnsupportedOperationException("Unsupported Building Application for ExecutionMode: " + app.getExecutionModeEnum());
+                throw new UnsupportedOperationException(
+                    "Unsupported Building Application for ExecutionMode: " + app.getExecutionModeEnum());
         }
     }
 
@@ -437,29 +435,28 @@ public class AppBuildPipeServiceImpl
     @Override
     public boolean allowToBuildNow(@Nonnull Long appId) {
         return getCurrentBuildPipeline(appId)
-            .map(pipeline -> PipelineStatus.running != pipeline.getPipeStatus())
+            .map(pipeline -> PipelineStatus.running != pipeline.getPipelineStatus())
             .orElse(true);
     }
 
     @Override
     public Map<Long, PipelineStatus> listPipelineStatus(List<Long> appIds) {
         if (CollectionUtils.isEmpty(appIds)) {
-            return Maps.newHashMap();
+            return Collections.emptyMap();
         }
-        QueryWrapper<AppBuildPipeline> query = new QueryWrapper<>();
-        query.select("app_id", "pipe_status").in("app_id", appIds);
-        List<Map<String, Object>> rMaps = baseMapper.selectMaps(query);
-        if (CollectionUtils.isEmpty(rMaps)) {
-            return Maps.newHashMap();
+        LambdaQueryWrapper<AppBuildPipeline> queryWrapper = new LambdaQueryWrapper<AppBuildPipeline>()
+            .in(AppBuildPipeline::getAppId, appIds);
+
+        List<AppBuildPipeline> appBuildPipelines = baseMapper.selectList(queryWrapper);
+        if (CollectionUtils.isEmpty(appBuildPipelines)) {
+            return Collections.emptyMap();
         }
-        return rMaps.stream().collect(Collectors.toMap(
-            e -> (Long) e.get("app_id"),
-            e -> PipelineStatus.of((Integer) e.get("pipe_status"))));
+        return appBuildPipelines.stream().collect(Collectors.toMap(e -> e.getAppId(), e -> e.getPipelineStatus()));
     }
 
     @Override
     public void removeApp(Long appId) {
-        baseMapper.delete(new QueryWrapper<AppBuildPipeline>().lambda().eq(AppBuildPipeline::getAppId, appId));
+        baseMapper.delete(new LambdaQueryWrapper<AppBuildPipeline>().eq(AppBuildPipeline::getAppId, appId));
     }
 
     public boolean saveEntity(AppBuildPipeline pipe) {

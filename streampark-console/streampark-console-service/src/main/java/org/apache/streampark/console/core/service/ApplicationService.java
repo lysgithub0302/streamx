@@ -35,6 +35,8 @@ public interface ApplicationService extends IService<Application> {
 
     IPage<Application> page(Application app, RestRequest request);
 
+    boolean existsByTeamId(Long teamId);
+
     boolean create(Application app) throws IOException;
 
     Long copy(Application app) throws IOException;
@@ -67,7 +69,7 @@ public interface ApplicationService extends IService<Application> {
 
     boolean mapping(Application app);
 
-    Map<String, Serializable> dashboard();
+    Map<String, Serializable> dashboard(Long teamId);
 
     void tailMvnDownloading(Long id);
 
@@ -90,8 +92,27 @@ public interface ApplicationService extends IService<Application> {
 
     List<Application> getByProjectId(Long id);
 
+    List<Application> getByTeamId(Long teamId);
+
     boolean checkBuildAndUpdate(Application app);
 
     void forcedStop(Application app);
 
+    boolean existsRunningJobByClusterId(Long clusterId);
+
+    boolean existsJobByClusterId(Long id);
+
+    List<String> getRecentK8sNamespace();
+
+    List<String> getRecentK8sClusterId(Integer executionMode);
+
+    List<String> getRecentFlinkBaseImage();
+
+    List<String> getRecentK8sPodTemplate();
+
+    List<String> getRecentK8sJmPodTemplate();
+
+    List<String> getRecentK8sTmPodTemplate();
+
+    List<String> historyUploadJars();
 }

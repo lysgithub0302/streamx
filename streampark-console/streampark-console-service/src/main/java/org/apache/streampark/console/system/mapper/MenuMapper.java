@@ -20,16 +20,15 @@ package org.apache.streampark.console.system.mapper;
 import org.apache.streampark.console.system.entity.Menu;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
 public interface MenuMapper extends BaseMapper<Menu> {
 
-    List<Menu> findUserPermissions(String userName);
+    List<String> findUserPermissions(@Param("userId") Long userId, @Param("teamId") Long teamId);
 
-    List<Menu> findUserMenus(String userName);
+    List<Menu> findUserMenus(@Param("userId")Long userId, @Param("teamId") Long teamId);
 
     /**
      * Find the user ID associated with the current menu or button
@@ -39,13 +38,4 @@ public interface MenuMapper extends BaseMapper<Menu> {
      */
     List<String> findUserIdsByMenuId(String menuId);
 
-    /**
-     * Recursively delete menu and buttons
-     *
-     * @param menuId menuId
-     */
-    void deleteMenus(String menuId);
-
-    @Delete("delete from t_role_menu where menu_id = #{menuId}")
-    void deleteRoleMenuByMenuId(@Param("menuId") Long menuId);
 }

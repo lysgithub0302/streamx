@@ -23,7 +23,7 @@ import java.util.{Map => JavaMap}
 import org.apache.streampark.common.conf.Workspace
 import javax.annotation.Nullable
 import org.apache.streampark.common.domain.FlinkVersion
-import org.apache.streampark.common.enums.{ExecutionMode, FlinkK8sRestExposedType, ResolveOrder}
+import org.apache.streampark.common.enums.{ExecutionMode, FlinkK8sRestExposedType}
 import org.apache.streampark.common.util.FlinkUtils
 import org.apache.commons.io.FileUtils
 import org.apache.flink.kubernetes.configuration.KubernetesConfigOptions
@@ -31,15 +31,12 @@ import org.apache.flink.kubernetes.configuration.KubernetesConfigOptions
 case class DeployRequest(flinkVersion: FlinkVersion,
                          clusterId: String,
                          executionMode: ExecutionMode,
-                         resolveOrder: ResolveOrder,
-                         flameGraph: JavaMap[String, java.io.Serializable],
-                         dynamicOption: JavaMap[String, String],
-                         @Nullable k8sDeployParam: KubernetesDeployParam,
-                         @Nullable extraParameter: JavaMap[String, Any]
-                         ) {
+                         properties: JavaMap[String, Any],
+                         @Nullable k8sDeployParam: KubernetesDeployParam) {
+
   private[submit] lazy val hdfsWorkspace = {
     /**
-      * 必须保持本机flink和hdfs里的flink版本和配置都完全一致.
+      * You must keep the flink version and configuration in the native flink and hdfs exactly the same.
       */
     val workspace = Workspace.remote
     val flinkHome = flinkVersion.flinkHome

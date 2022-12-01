@@ -19,6 +19,14 @@ package org.apache.streampark.common.conf
 import java.time.LocalDateTime
 
 object ConfigConst {
+
+  /**
+   * common const
+   *
+   */
+
+  val DEFAULT_DATAMASK_STRING = "********"
+
   /**
    *
    * about parameter...
@@ -37,10 +45,6 @@ object ConfigConst {
   val KEY_PASSWORD = "password"
 
   val KEY_TIMEOUT = "timeout"
-
-  val KEY_JOB_ID = "jobId"
-
-  val KEY_FLINK_JOB_ID = "flinkJobId"
 
   val KEY_SEMANTIC = "semantic"
 
@@ -104,9 +108,15 @@ object ConfigConst {
 
   def KEY_FLINK_PARALLELISM(prefix: String = null): String = if (prefix == null) "parallelism.default" else s"${prefix}parallelism.default"
 
-  val KEY_FLINK_DEPLOYMENT_PROPERTY_PREFIX = "flink.deployment.property."
+  val KEY_FLINK_OPTION_PREFIX = "flink.option."
 
-  val KEY_FLINK_DEPLOYMENT_OPTION_PREFIX = "flink.deployment.option."
+  val KEY_FLINK_PROPERTY_PREFIX = "flink.property."
+
+  val KEY_FLINK_TABLE_PREFIX = "flink.table."
+
+  val KEY_APP_PREFIX = "app."
+
+  val KEY_SQL_PREFIX = "sql."
 
   val KEY_FLINK_APP_NAME = "pipeline.name"
 
@@ -116,61 +126,7 @@ object ConfigConst {
 
   val KEY_YARN_APP_QUEUE = "yarn.application.queue"
 
-  // --checkpoints--
-  val KEY_FLINK_CHECKPOINTS_ENABLE = "flink.checkpoints.enable"
-
-  val KEY_FLINK_CHECKPOINTS_UNALIGNED = "flink.checkpoints.unaligned"
-
-  val KEY_FLINK_CHECKPOINTS_INTERVAL = "flink.checkpoints.interval"
-
-  val KEY_FLINK_CHECKPOINTS_MODE = "flink.checkpoints.mode"
-
-  val KEY_FLINK_CHECKPOINTS_CLEANUP = "flink.checkpoints.cleanup"
-
-  val KEY_FLINK_CHECKPOINTS_TIMEOUT = "flink.checkpoints.timeout"
-
-  val KEY_FLINK_CHECKPOINTS_MAX_CONCURRENT = "flink.checkpoints.maxConcurrent"
-
-  val KEY_FLINK_CHECKPOINTS_MIN_PAUSEBETWEEN = "flink.checkpoints.minPauseBetween"
-
-  //---state---
-
-  val KEY_FLINK_STATE_SAVEPOINTS_DIR = "flink.state.savepoints.dir"
-
-  val KEY_FLINK_STATE_CHECKPOINTS_DIR = "flink.state.checkpoints.dir"
-
-  val KEY_FLINK_STATE_CHECKPOINT_STORAGE = "flink.state.checkpoint-storage"
-
-  val KEY_FLINK_STATE_BACKEND = "flink.state.backend.value"
-
-  val KEY_FLINK_STATE_BACKEND_ASYNC = "flink.state.backend.async"
-
-  val KEY_FLINK_STATE_BACKEND_INCREMENTAL = "flink.state.backend.incremental"
-
-  val KEY_FLINK_STATE_BACKEND_MEMORY = "flink.state.backend.memory"
-
-  val KEY_FLINK_STATE_ROCKSDB = "flink.state.backend.rocksdb"
-
-  //---restart-strategy---
-
-  val KEY_FLINK_RESTART_STRATEGY = "flink.restart-strategy.value"
-
-  val KEY_FLINK_RESTART_STRATEGY_FAILURE_RATE_PER_INTERVAL = "flink.restart-strategy.failure-rate.max-failures-per-interval"
-
-  val KEY_FLINK_RESTART_STRATEGY_FAILURE_RATE_RATE_INTERVAL = "flink.restart-strategy.failure-rate.failure-rate-interval"
-
-  val KEY_FLINK_RESTART_STRATEGY_FAILURE_RATE_DELAY = "flink.restart-strategy.failure-rate.delay"
-
-  val KEY_FLINK_RESTART_STRATEGY_FIXED_DELAY_ATTEMPTS = "flink.restart-strategy.fixed-delay.attempts"
-
-  val KEY_FLINK_RESTART_STRATEGY_FIXED_DELAY_DELAY = "flink.restart-strategy.fixed-delay.delay"
-
-  val KEY_EXECUTION_RUNTIME_MODE = "flink.execution.runtime-mode"
-
-  val KEY_FLINK_WATERMARK_INTERVAL = "flink.watermark.interval"
-
-  // ---watermark---
-  val KEY_FLINK_WATERMARK_TIME_CHARACTERISTIC = "flink.watermark.time.characteristic"
+  val KEY_K8S_IMAGE_PULL_POLICY = "kubernetes.container.image.pull-policy"
 
   // ---table---
   val KEY_FLINK_TABLE_PLANNER = "flink.table.planner"
@@ -211,8 +167,6 @@ object ConfigConst {
 
   val KEY_JDBC_DRIVER = "driverClassName"
 
-  val KEY_JDBC_DATABASE = "database"
-
   val KEY_JDBC_URL = "jdbcUrl"
 
   val KEY_JDBC_USER = "username"
@@ -221,11 +175,7 @@ object ConfigConst {
 
   val KEY_JDBC_INSERT_BATCH = "batch.size"
 
-  val KEY_JDBC_INSERT_BATCH_DELAYTIME = "batch.delayTime"
-
   val DEFAULT_JDBC_INSERT_BATCH = 1
-
-  val DEFAULT_JDBC_INSERT_BATCH_DELAYTIME = 1000L
 
   val MONGO_PREFIX = "mongodb."
 
@@ -264,28 +214,22 @@ object ConfigConst {
 
   val KEY_FLINK_TM_PROCESS_MEMORY = "taskmanager.memory.process.size"
 
-  val KEY_FLINK_TOTAL_MEMORY = "jobmanager.memory.flink.size"
-
-  val KEY_FLINK_JVM_HEAP_MEMORY = "jobmanager.memory.heap.size"
-
-  val KEY_FLINK_JVM_OFF_HEAP_MEMORY = "jobmanager.memory.off-heap.size"
-
   val STREAMPARK_FLINKSQL_CLIENT_CLASS = "org.apache.streampark.flink.cli.SqlClient"
 
   def printLogo(info: String): Unit = {
     // scalastyle:off println
-    println("\n\n                 .+.                                ")
-    println("           _____/ /_________  ____ _____ ___  _  __     ")
-    println("          / ___/ __/ ___/ _ \\/ __ `/ __ `__ \\| |/_/   ")
-    println("         (__  ) /_/ /  /  __/ /_/ / / / / / />  <       ")
-    println("        /____/\\__/_/   \\___/\\__,_/_/ /_/ /_/_/|_|    ")
-    println("                                              |/        ")
-    println("                                              .         ")
-    println("\n       WebSite:  http://streampark.apache.org         ")
-    println("       GitHub :  https://github.com/apache/streampark   ")
-    println("       Ver    :  1.2.4                                  ")
-    println(s"       Info   :  $info                                 ")
-    println(s"       Time   :  ${LocalDateTime.now}              \n\n")
+    println("\n")
+    println("        _____ __                                             __       ")
+    println("       / ___// /_________  ____ _____ ___  ____  ____ ______/ /__     ")
+    println("       \\__ \\/ __/ ___/ _ \\/ __ `/ __ `__ \\/ __ \\  __ `/ ___/ //_/")
+    println("      ___/ / /_/ /  /  __/ /_/ / / / / / / /_/ / /_/ / /  / ,<        ")
+    println("     /____/\\__/_/   \\___/\\__,_/_/ /_/ /_/ ____/\\__,_/_/  /_/|_|   ")
+    println("                                       /_/                        \n\n")
+    println("    Version:  2.0.0                                                   ")
+    println("    WebSite:  https://streampark.apache.org                           ")
+    println("    GitHub :  https://github.com/apache/incubator-streampark                    ")
+    println(s"    Info   :  $info                                 ")
+    println(s"    Time   :  ${LocalDateTime.now}              \n\n")
     // scalastyle:on println
   }
 

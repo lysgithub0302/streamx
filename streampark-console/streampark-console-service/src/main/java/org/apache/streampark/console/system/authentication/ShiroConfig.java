@@ -28,9 +28,6 @@ import javax.servlet.Filter;
 
 import java.util.LinkedHashMap;
 
-/**
- * Shiro Config
- */
 @Configuration
 public class ShiroConfig {
 
@@ -44,14 +41,38 @@ public class ShiroConfig {
         shiroFilterFactoryBean.setFilters(filters);
 
         LinkedHashMap<String, String> filterChainDefinitionMap = new LinkedHashMap<>();
+        filterChainDefinitionMap.put("/actuator/**", "anon");
+
         filterChainDefinitionMap.put("/doc.html", "anon");
-        filterChainDefinitionMap.put("/swagger-ui.html", "anon");
+        filterChainDefinitionMap.put("/swagger-ui/**", "anon");
         filterChainDefinitionMap.put("/swagger-resources", "anon");
         filterChainDefinitionMap.put("/swagger-resources/configuration/security", "anon");
         filterChainDefinitionMap.put("/swagger-resources/configuration/ui", "anon");
-        filterChainDefinitionMap.put("/v2/api-docs", "anon");
+        filterChainDefinitionMap.put("/v3/api-docs", "anon");
         filterChainDefinitionMap.put("/webjars/**", "anon");
 
+        filterChainDefinitionMap.put("/passport/**", "anon");
+        filterChainDefinitionMap.put("/systemName", "anon");
+        filterChainDefinitionMap.put("/member/teams", "anon");
+        filterChainDefinitionMap.put("/user/check/**", "anon");
+        filterChainDefinitionMap.put("/user/initTeam", "anon");
+        filterChainDefinitionMap.put("/websocket/**", "anon");
+        filterChainDefinitionMap.put("/metrics/**", "anon");
+
+        filterChainDefinitionMap.put("/index.html", "anon");
+        filterChainDefinitionMap.put("/assets/**", "anon");
+        filterChainDefinitionMap.put("/resource/**/**", "anon");
+        filterChainDefinitionMap.put("/css/**", "anon");
+        filterChainDefinitionMap.put("/fonts/**", "anon");
+        filterChainDefinitionMap.put("/img/**", "anon");
+        filterChainDefinitionMap.put("/js/**", "anon");
+        filterChainDefinitionMap.put("/loading/**", "anon");
+        filterChainDefinitionMap.put("/*.js", "anon");
+        filterChainDefinitionMap.put("/*.png", "anon");
+        filterChainDefinitionMap.put("/*.jpg", "anon");
+        filterChainDefinitionMap.put("/*.less", "anon");
+        filterChainDefinitionMap.put("/*.ico", "anon");
+        filterChainDefinitionMap.put("/", "anon");
         filterChainDefinitionMap.put("/**", "jwt");
 
         shiroFilterFactoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);

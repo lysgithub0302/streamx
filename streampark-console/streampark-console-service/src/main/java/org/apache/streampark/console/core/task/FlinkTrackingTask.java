@@ -20,6 +20,7 @@ package org.apache.streampark.console.core.task;
 import static org.apache.streampark.common.enums.ExecutionMode.isKubernetesMode;
 
 import org.apache.streampark.common.enums.ExecutionMode;
+import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.common.util.HttpClientUtils;
 import org.apache.streampark.common.util.ThreadUtils;
 import org.apache.streampark.common.util.YarnUtils;
@@ -207,7 +208,7 @@ public class FlinkTrackingTask {
                     final OptionState optionState = OPTIONING.get(key);
                     try {
                         // query status from flink rest api
-                        assert application.getId() != null;
+                        AssertUtils.state(application.getId() != null);
                         getFromFlinkRestApi(application, stopFrom);
                     } catch (Exception flinkException) {
                         // query status from yarn rest api
@@ -322,13 +323,14 @@ public class FlinkTrackingTask {
                 application.setEndTime(new Date(endTime));
             }
         }
+
+        application.setJobId(jobOverview.getId());
         application.setDuration(jobOverview.getDuration());
+        application.setTotalTask(jobOverview.getTasks().getTotal());
+        application.setOverview(jobOverview.getTasks());
 
         // get overview info at the first start time
         if (STARTING_CACHE.getIfPresent(application.getId()) != null) {
-            application.setTotalTask(jobOverview.getTasks().getTotal());
-            application.setOverview(jobOverview.getTasks());
-
             FlinkCluster flinkCluster = getFlinkCluster(application);
             Overview override = httpOverview(application, flinkCluster);
             if (override != null && override.getSlotsTotal() > 0) {
@@ -414,8 +416,10 @@ public class FlinkTrackingTask {
                 cleanSavepoint(application);
                 application.setState(currentState.getValue());
                 if (StopFrom.NONE.equals(stopFrom) || applicationService.checkAlter(application)) {
-                    log.info("flinkTrackingTask getFromFlinkRestApi, job cancel is not form StreamPark,savePoint obsoleted!");
-                    savePointService.obsolete(application.getId());
+                    if (StopFrom.NONE.equals(stopFrom)) {
+                        log.info("flinkTrackingTask getFromFlinkRestApi, job cancel is not form StreamPark,savePoint obsoleted!");
+                        savePointService.obsolete(application.getId());
+                    }
                     stopCanceledJob(application.getId());
                     alertService.alert(application, FlinkAppState.CANCELED);
                 }
@@ -660,7 +664,7 @@ public class FlinkTrackingTask {
     }
 
     public static Long getCanceledJobUserId(Long appId) {
-        return CANCELLED_JOB_MAP.get(appId);
+        return CANCELLED_JOB_MAP.get(appId) == null ? Long.valueOf(-1) : CANCELLED_JOB_MAP.get(appId);
     }
 
     public static Map<Long, Application> getAllTrackingApp() {

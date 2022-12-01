@@ -17,10 +17,9 @@
 
 package org.apache.streampark.flink.kubernetes.helper
 
-
 import com.google.common.base.Charsets
 import com.google.common.io.Files
-import org.apache.streampark.common.util.Logger
+import org.apache.streampark.common.util.{Logger, SystemPropertyUtils}
 import org.apache.streampark.common.util.Utils.tryWithResource
 import org.apache.streampark.flink.kubernetes.KubernetesRetriever
 import io.fabric8.kubernetes.api.model.Pod
@@ -82,25 +81,21 @@ object KubernetesDeploymentHelper extends Logger {
     }
   }
 
-  def watchDeploymentLog(nameSpace: String, jobName: String): String = {
+  def watchDeploymentLog(nameSpace: String, jobName: String, jobId: String): String = {
     tryWithResource(KubernetesRetriever.newK8sClient()) { client =>
-      Try {
-        val projectPath = new File("").getCanonicalPath
-        val path = s"$projectPath/${nameSpace}_$jobName.log"
-        val file = new File(path)
-        val log = client.apps.deployments.inNamespace(nameSpace).withName(jobName).getLog
-        Files.asCharSink(file, Charsets.UTF_8).write(log)
-        path
-      }.getOrElse(null)
-    }(error => throw error)
+      val path = KubernetesDeploymentHelper.getJobLog(jobId)
+      val file = new File(path)
+      val log = client.apps.deployments.inNamespace(nameSpace).withName(jobName).getLog
+      Files.asCharSink(file, Charsets.UTF_8).write(log)
+      path
+    }
   }
 
-  def watchPodTerminatedLog(nameSpace: String, jobName: String): String = {
+  def watchPodTerminatedLog(nameSpace: String, jobName: String, jobId: String): String = {
     tryWithResource(KubernetesRetriever.newK8sClient()) { client =>
       Try {
         val podName = getPods(nameSpace, jobName).head.getMetadata.getName
-        val projectPath = new File("").getCanonicalPath
-        val path = s"$projectPath/${nameSpace}_${jobName}_err.log"
+        val path = KubernetesDeploymentHelper.getJobErrorLog(jobId)
         val file = new File(path)
         val log = client.pods.inNamespace(nameSpace).withName(podName).terminated().withPrettyOutput.getLog
         Files.asCharSink(file, Charsets.UTF_8).write(log)
@@ -108,4 +103,27 @@ object KubernetesDeploymentHelper extends Logger {
       }.getOrElse(null)
     }(error => throw error)
   }
+
+  def deleteTaskConfigMap(nameSpace: String, deploymentName: String): Boolean = {
+    tryWithResource(KubernetesRetriever.newK8sClient()) { client =>
+      Try {
+        val r = client.configMaps()
+          .inNamespace(nameSpace)
+          .withLabel("app", deploymentName)
+          .delete
+        Boolean.unbox(r)
+      }.getOrElse(false)
+    }
+  }
+
+  private[kubernetes] def getJobLog(jobId: String): String = {
+    val tmpPath = SystemPropertyUtils.getTmpdir()
+    s"$tmpPath/$jobId.log"
+  }
+
+  private[kubernetes] def getJobErrorLog(jobId: String): String = {
+    val tmpPath = SystemPropertyUtils.getTmpdir()
+    s"$tmpPath/${jobId}_err.log"
+  }
+
 }

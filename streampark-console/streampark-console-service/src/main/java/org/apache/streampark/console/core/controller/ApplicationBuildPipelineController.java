@@ -29,6 +29,7 @@ import org.apache.streampark.console.core.service.FlinkSqlService;
 import org.apache.streampark.flink.packer.pipeline.DockerResolvedSnapshot;
 import org.apache.streampark.flink.packer.pipeline.PipelineType;
 
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
@@ -44,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Api(tags = {"FLINK_APPLICATION_BUILD_PIPELINE_TAG"})
 @Slf4j
 @Validated
 @RestController
@@ -69,8 +71,8 @@ public class ApplicationBuildPipelineController {
     @ApiAccess
     @ApiOperation(value = "Launch application", notes = "Launch application", tags = ApiDocConstant.FLINK_APP_OP_TAG, consumes = "application/x-www-form-urlencoded")
     @ApiImplicitParams({
-        @ApiImplicitParam(name = "appId", value = "APP_ID", required = true, paramType = "form", dataType = "Long"),
-        @ApiImplicitParam(name = "forceBuild", value = "FORCE_BUILD", required = true, paramType = "form", dataType = "Boolean", defaultValue = "false"),
+        @ApiImplicitParam(name = "appId", value = "APP_ID", required = true, paramType = "query", dataTypeClass = Long.class),
+        @ApiImplicitParam(name = "forceBuild", value = "FORCE_BUILD", required = true, paramType = "query", dataTypeClass = Boolean.class, defaultValue = "false"),
     })
     @PostMapping(value = "build", consumes = "application/x-www-form-urlencoded")
     @RequiresPermissions("app:create")

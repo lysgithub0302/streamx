@@ -17,7 +17,7 @@
 package org.apache.streampark.flink.core.conf
 
 import org.apache.streampark.common.conf.ConfigConst
-import org.apache.streampark.common.conf.ConfigConst.{KEY_FLINK_DEPLOYMENT_OPTION_PREFIX, KEY_FLINK_DEPLOYMENT_PROPERTY_PREFIX}
+import org.apache.streampark.common.conf.ConfigConst.{KEY_FLINK_OPTION_PREFIX, KEY_FLINK_PROPERTY_PREFIX}
 import org.apache.streampark.common.util.PropertiesUtils
 import org.apache.commons.cli.{DefaultParser, Options}
 
@@ -28,8 +28,8 @@ import scala.util.{Failure, Success, Try}
 
 object ParameterCli {
 
-  private[this] val propertyPrefix = KEY_FLINK_DEPLOYMENT_PROPERTY_PREFIX
-  private[this] val optionPrefix = KEY_FLINK_DEPLOYMENT_OPTION_PREFIX
+  private[this] val propertyPrefix = KEY_FLINK_PROPERTY_PREFIX
+  private[this] val optionPrefix = KEY_FLINK_OPTION_PREFIX
   private[this] val optionMain = s"$propertyPrefix$$internal.application.main"
 
   lazy val flinkOptions: Options = FlinkRunOption.allOptions
@@ -48,11 +48,15 @@ object ParameterCli {
         }
       case action =>
         val conf = args(1)
-        val map = Try(if (conf.endsWith(".properties")) {
-          PropertiesUtils.fromPropertiesFile(conf)
-        } else {
-          PropertiesUtils.fromYamlFile(conf)
-        }) match {
+        val map = Try {
+          val extension = conf.split("\\.").last.toLowerCase
+          extension match {
+            case "yml" | "yaml" => PropertiesUtils.fromYamlFile(conf)
+            case "conf" => PropertiesUtils.fromHoconFile(conf)
+            case "properties" => PropertiesUtils.fromPropertiesFile(conf)
+            case _ => throw new IllegalArgumentException("[StreamPark] Usage:flink.conf file error,must be (yml|conf|properties)")
+          }
+        } match {
           case Success(value) => value
           case _ => Map.empty[String, String]
         }
@@ -82,7 +86,15 @@ object ParameterCli {
             val buffer = new StringBuffer()
             map
               .filter(x => x._1 != optionMain && x._1.startsWith(propertyPrefix) && x._2.nonEmpty)
-              .foreach(x => buffer.append(s" -D${x._1.drop(propertyPrefix.length)}=${x._2}"))
+              .foreach { x =>
+                val key = x._1.drop(propertyPrefix.length).trim
+                val value = x._2.trim
+                if (key == ConfigConst.KEY_FLINK_APP_NAME) {
+                  buffer.append(s" -D$key=${value.replace(" ", "_")}")
+                } else {
+                  buffer.append(s" -D$key=$value")
+                }
+              }
             buffer.toString.trim
           case "--name" =>
             map.getOrElse(propertyPrefix.concat(ConfigConst.KEY_FLINK_APP_NAME), "").trim match {
