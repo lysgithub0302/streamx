@@ -18,7 +18,7 @@
   <PageWrapper contentFullHeight contentBackground contentClass="px-20px">
     <a-card class="header" :bordered="false">
       <template #extra>
-        <a-radio-group v-model:value="queryParams.buildState">
+        <a-radio-group v-model:value="buildState">
           <a-radio-button
             v-for="item in buttonList"
             @click="handleQuery(item.key)"
@@ -29,7 +29,7 @@
         </a-radio-group>
         <a-input-search
           @search="handleSearch"
-          placeholder="please enter a keyword search"
+          :placeholder="t('flink.project.searchPlaceholder')"
           class="search-input"
         />
       </template>
@@ -48,9 +48,19 @@
             v-for="item in projectDataSource"
             :item="item"
             @view-log="handleViewLog"
-            @success="queryData"
+            @success="handleListItemSuccess"
           />
         </a-list>
+        <div class="text-center mt-10px">
+          <a-pagination
+            class="w-full"
+            showLessItems
+            hideOnSinglePage
+            :pageSize="pageInfo.pageSize"
+            :total="pageInfo.total"
+            @change="handlePageChange"
+          />
+        </div>
       </a-spin>
     </a-card>
     <LogModal @register="registerLogModal" />
@@ -61,7 +71,7 @@
 
   import { PageWrapper } from '/@/components/Page';
   import { statusList } from './project.data';
-  import { RadioGroup, Radio, Input, Card, List, Spin } from 'ant-design-vue';
+  import { RadioGroup, Radio, Input, Card, List, Spin, Pagination } from 'ant-design-vue';
   import { getList } from '/@/api/flink/project';
   import { ProjectRecord } from '/@/api/flink/project/model/projectModel';
   import ListItem from './components/ListItem.vue';
@@ -80,6 +90,7 @@
       ARadioGroup: RadioGroup,
       ARadioButton: Radio.Button,
       AInputSearch: Input.Search,
+      APagination: Pagination,
       ACard: Card,
       AList: List,
       ListItem,
@@ -94,9 +105,17 @@
       const [registerLogModal, { openModal: openLogModal }] = useModal();
       const buttonList = reactive(statusList);
       const loading = ref(false);
+      const buildState = ref('');
+      const pageInfo = reactive({
+        currentPage: 0,
+        pageSize: 10,
+        total: 0,
+      });
 
       const queryParams = reactive({
         buildState: '',
+        pageNum: pageInfo.currentPage,
+        pageSize: pageInfo.pageSize,
       });
 
       let projectDataSource = ref<Array<ProjectRecord>>([]);
@@ -112,14 +131,21 @@
 
       function queryData(showLoading = true) {
         if (showLoading) loading.value = true;
-        getList({ ...queryParams, teamId: userStore.getTeamId }).then((res) => {
+        console.log('pageInfo', pageInfo);
+        getList({
+          buildState: buildState.value,
+          pageNum: pageInfo.currentPage,
+          pageSize: pageInfo.pageSize,
+          teamId: userStore.getTeamId,
+        }).then((res) => {
           loading.value = false;
+          pageInfo.total = Number(res.total);
           projectDataSource.value = res.records;
         });
       }
 
       const handleQuery = function (val) {
-        queryParams.buildState = val;
+        buildState.value = val;
         queryData();
       };
 
@@ -148,9 +174,18 @@
       onUnmounted(() => {
         stop();
       });
-
+      function handlePageChange(val: number) {
+        pageInfo.currentPage = val;
+        queryData();
+      }
+      function handleListItemSuccess() {
+        pageInfo.currentPage = 0;
+        queryData();
+      }
       return {
         t,
+        pageInfo,
+        buildState,
         buttonList,
         handleQuery,
         queryParams,
@@ -161,6 +196,8 @@
         registerLogModal,
         handleViewLog,
         queryData,
+        handlePageChange,
+        handleListItemSuccess,
       };
     },
   });

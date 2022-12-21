@@ -20,13 +20,13 @@ package org.apache.streampark.console.core.service.impl;
 import org.apache.streampark.common.conf.CommonConfig;
 import org.apache.streampark.common.conf.InternalConfigHolder;
 import org.apache.streampark.common.conf.Workspace;
-import org.apache.streampark.common.domain.FlinkMemorySize;
 import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.common.util.CompletableFutureUtils;
 import org.apache.streampark.common.util.ThreadUtils;
 import org.apache.streampark.console.base.domain.ResponseCode;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.domain.RestResponse;
+import org.apache.streampark.console.base.exception.ApiAlertException;
 import org.apache.streampark.console.base.mybatis.pager.MybatisPager;
 import org.apache.streampark.console.base.util.CommonUtils;
 import org.apache.streampark.console.base.util.FileUtils;
@@ -34,6 +34,7 @@ import org.apache.streampark.console.base.util.GZipUtils;
 import org.apache.streampark.console.core.entity.Application;
 import org.apache.streampark.console.core.entity.Project;
 import org.apache.streampark.console.core.enums.BuildState;
+import org.apache.streampark.console.core.enums.GitProtocol;
 import org.apache.streampark.console.core.enums.LaunchState;
 import org.apache.streampark.console.core.mapper.ProjectMapper;
 import org.apache.streampark.console.core.service.ApplicationService;
@@ -46,6 +47,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.flink.configuration.MemorySize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -104,7 +106,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
                 return response.message("Add project failed").data(false);
             }
         } else {
-            return response.message("A project with this name already exists, adding a task failed").data(false);
+            throw new ApiAlertException("project name already exists,add project failed");
         }
     }
 
@@ -119,11 +121,18 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
             project.setName(projectParam.getName());
             project.setUrl(projectParam.getUrl());
             project.setBranches(projectParam.getBranches());
+            project.setGitProtocol(projectParam.getGitProtocol());
+            project.setRsaPath(projectParam.getRsaPath());
             project.setUserName(projectParam.getUserName());
             project.setPassword(projectParam.getPassword());
             project.setPom(projectParam.getPom());
             project.setDescription(projectParam.getDescription());
             project.setBuildArgs(projectParam.getBuildArgs());
+            if (GitProtocol.SSH.equals(GitProtocol.of(project.getGitProtocol()))) {
+                project.setUserName(null);
+            } else {
+                project.setRsaPath(null);
+            }
             if (projectParam.getBuildState() != null) {
                 project.setBuildState(projectParam.getBuildState());
                 if (BuildState.of(projectParam.getBuildState()).equals(BuildState.NEED_REBUILD)) {
@@ -196,7 +205,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
                 List<String> list = new ArrayList<>();
                 File[] files = appHome.listFiles();
                 if (CommonUtils.notEmpty(files)) {
-                    for (File file: files) {
+                    for (File file : files) {
                         list.add(file.getName());
                     }
                 }
@@ -212,6 +221,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     @Override
     public List<String> jars(Project project) {
         List<String> list = new ArrayList<>(0);
+        if (project.getModule() == null) {
+            throw new ApiAlertException("project module can not be null, please check");
+        }
         File apps = new File(project.getDistHome(), project.getModule());
         for (File file : Objects.requireNonNull(apps.listFiles())) {
             if (file.getName().endsWith(".jar")) {
@@ -319,7 +331,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
             startOffset = 0L;
         }
         try {
-            long maxSize = FlinkMemorySize.parse(InternalConfigHolder.get(CommonConfig.READ_LOG_MAX_SIZE())).getBytes();
+            long maxSize = MemorySize.parse(InternalConfigHolder.get(CommonConfig.READ_LOG_MAX_SIZE())).getBytes();
             if (startOffset == null) {
                 fileContent = FileUtils.readEndOfFile(logFile, maxSize);
             } else {

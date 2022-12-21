@@ -18,7 +18,6 @@
   import { computed, defineComponent, onMounted, reactive, ref } from 'vue';
   import { useI18n } from '/@/hooks/web/useI18n';
   import { toPomString } from '../utils/Pom';
-  import { isK8sExecMode } from '../utils';
 
   export default defineComponent({
     name: 'Dependency',
@@ -279,7 +278,7 @@
       </div>
     </TabPane>
     <TabPane key="jar" tab="Upload Jar">
-      <template v-if="isK8sExecMode(formModel?.executionMode)">
+      <template v-if="filteredHistoryUploadJarsOptions.length > 0">
         <Form.ItemRest>
           <Select
             mode="multiple"

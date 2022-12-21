@@ -36,7 +36,7 @@
   import { fetchAppConf, fetchCreate, fetchMain, fetchUpload } from '/@/api/flink/app/app';
   import options from './data/option';
   import { useCreateSchema } from './hooks/useCreateSchema';
-  import { handleSubmitParams } from './utils';
+  import { getAppConfType, handleSubmitParams } from './utils';
   import { useMessage } from '/@/hooks/web/useMessage';
   import { createLocalStorage } from '/@/utils/cache';
   import { buildUUID } from '/@/utils/uuid';
@@ -46,7 +46,13 @@
   import UseSysHadoopConf from './components/UseSysHadoopConf.vue';
   import { CreateParams } from '/@/api/flink/app/app.type';
   import { decodeByBase64, encryptByBase64 } from '/@/utils/cipher';
-  import { AppTypeEnum, ClusterStateEnum, JobTypeEnum, ResourceFromEnum } from '/@/enums/flinkEnum';
+  import {
+    AppTypeEnum,
+    ClusterStateEnum,
+    ExecModeEnum,
+    JobTypeEnum,
+    ResourceFromEnum,
+  } from '/@/enums/flinkEnum';
 
   const FlinkSqlEditor = createAsyncComponent(() => import('./components/FlinkSql.vue'), {
     loading: true,
@@ -103,8 +109,7 @@
     if (v) {
       Object.assign(defaultValue, { versionId: v.id });
     }
-
-    setFieldsValue(defaultValue);
+    await setFieldsValue(defaultValue);
   }
 
   /* Open the sqlConf drawer */
@@ -152,10 +157,14 @@
   }
 
   function handleCluster(values: Recordable) {
+    let flinkClusterId =
+      values.executionMode == ExecModeEnum.YARN_SESSION
+        ? values.yarnSessionClusterId
+        : values.flinkClusterId;
     const cluster =
       unref(flinkClusters).filter((c) => {
-        if (values.flinkClusterId) {
-          return c.id == values.flinkClusterId && c.clusterState === ClusterStateEnum.STARTED;
+        if (flinkClusterId) {
+          return c.id == flinkClusterId && c.clusterState === ClusterStateEnum.STARTED;
         }
       })[0] || null;
     if (cluster) {
@@ -180,13 +189,12 @@
         params['resourceFrom'] = ResourceFromEnum.CICD;
         //streampark flink
         if (values.appType == AppTypeEnum.STREAMPARK_FLINK) {
-          const configVal = values['config'];
-          params['format'] = configVal.endsWith('.properties') ? 2 : 1;
+          const configVal = values.config;
+          params['format'] = getAppConfType(configVal);
           if (values.configOverride == null) {
-            const res = await fetchAppConf({
+            params['config'] = await fetchAppConf({
               config: configVal,
             });
-            params['config'] = res;
           } else {
             params['config'] = decodeByBase64(values.configOverride);
           }

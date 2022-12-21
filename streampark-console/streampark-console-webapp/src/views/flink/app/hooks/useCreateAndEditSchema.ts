@@ -115,7 +115,7 @@ export const useCreateAndEditSchema = (
             return values?.jobType == 'sql';
           }
         },
-        rules: [{ required: true, message: 'Flink SQL is required' }],
+        rules: [{ required: true, message: t('flink.app.addAppTips.flinkSqlIsRequiredMessage') }],
       },
       {
         field: 'dependency',
@@ -218,10 +218,12 @@ export const useCreateAndEditSchema = (
           options: getExecutionCluster(ExecModeEnum.REMOTE, 'id'),
         },
         ifShow: ({ values }) => values.executionMode == ExecModeEnum.REMOTE,
-        rules: [{ required: true, message: 'Flink Cluster is required' }],
+        rules: [
+          { required: true, message: t('flink.app.addAppTips.flinkClusterIsRequiredMessage') },
+        ],
       },
       {
-        field: 'flinkClusterId',
+        field: 'yarnSessionClusterId',
         label: t('flink.app.flinkCluster'),
         component: 'Select',
         componentProps: {
@@ -229,7 +231,9 @@ export const useCreateAndEditSchema = (
           options: getExecutionCluster(ExecModeEnum.YARN_SESSION, 'id'),
         },
         ifShow: ({ values }) => values.executionMode == ExecModeEnum.YARN_SESSION,
-        rules: [{ required: true, message: 'Flink Cluster is required' }],
+        rules: [
+          { required: true, message: t('flink.app.addAppTips.flinkClusterIsRequiredMessage') },
+        ],
       },
       {
         field: 'k8sNamespace',
@@ -248,12 +252,18 @@ export const useCreateAndEditSchema = (
         component: 'Input',
         componentProps: ({ formModel }) => {
           return {
-            placeholder: t('flink.app.addAppTips.kubernetesClusterIdPlaceholder'),
+            placeholder: t('flink.app.addAppTips.kubernetesClusterIdRequire'),
             onChange: (e: ChangeEvent) => (formModel.jobName = e.target.value),
           };
         },
         ifShow: ({ values }) => values.executionMode == ExecModeEnum.KUBERNETES_APPLICATION,
-        rules: [{ required: true, message: 'Kubernetes clusterId is required' }],
+        rules: [
+          {
+            required: true,
+            message: t('flink.app.addAppTips.kubernetesClusterIdRequire'),
+            pattern: /^[a-z0-9]([a-z0-9_\.]+)?[a-z0-9]$/,
+          },
+        ],
       },
       {
         field: 'clusterId',

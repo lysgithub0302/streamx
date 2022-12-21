@@ -27,7 +27,7 @@
   import configOptions from './data/option';
   import { fetchMain, fetchUpload, fetchUpdate, fetchGet } from '/@/api/flink/app/app';
   import { useRoute } from 'vue-router';
-  import { handleSubmitParams } from './utils';
+  import { getAppConfType, handleSubmitParams } from './utils';
   import { fetchFlinkHistory } from '/@/api/flink/app/flinkSql';
   import { decodeByBase64, encryptByBase64 } from '/@/utils/cipher';
   import PomTemplateTab from './components/PodTemplate/PomTemplateTab.vue';
@@ -48,7 +48,7 @@
   import { useGo } from '/@/hooks/web/usePage';
   import ProgramArgs from './components/ProgramArgs.vue';
   import VariableReview from './components/VariableReview.vue';
-  import { JobTypeEnum, UseStrategyEnum } from '/@/enums/flinkEnum';
+  import { ExecModeEnum, JobTypeEnum, UseStrategyEnum } from '/@/enums/flinkEnum';
 
   const route = useRoute();
   const go = useGo();
@@ -120,12 +120,13 @@
           cpFailureAction: app.cpFailureAction,
         },
         clusterId: app.clusterId,
-        flinkClusterId: app.flinkClusterId,
+        [app.executionMode == ExecModeEnum.YARN_SESSION
+          ? 'yarnSessionClusterId'
+          : 'flinkClusterId']: app.flinkClusterId,
         flinkImage: app.flinkImage,
         k8sNamespace: app.k8sNamespace,
         ...resetParams,
       };
-      console.log('resetParams', resetParams);
       if (!executionMode) {
         Object.assign(defaultParams, { executionMode: app.executionMode });
       }
@@ -223,9 +224,7 @@
       const format =
         values.strategy == UseStrategyEnum.USE_EXIST
           ? app.format
-          : (values.config || '').endsWith('.properties')
-          ? 2
-          : 1;
+          : getAppConfType(values.config || '');
       let config = values.configOverride || app.config;
       if (config != null && config.trim() !== '') {
         config = encryptByBase64(config);
@@ -293,6 +292,7 @@
         [item.key]: item.defaultValue,
       });
     });
+
     setFieldsValue({
       jobType: res.jobType,
       executionMode: res.executionMode,

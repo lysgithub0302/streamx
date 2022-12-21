@@ -49,7 +49,9 @@
   const router = useRouter();
 
   const { Swal, createMessage } = useMessage();
-  const { copy } = useClipboard();
+  const { copy } = useClipboard({
+    legacy: true,
+  });
   const { t } = useI18n();
 
   const yarn = ref('');
@@ -178,8 +180,7 @@
 
   /* Get yarn data */
   async function handleYarn() {
-    const res = await fetchYarn();
-    yarn.value = res;
+    yarn.value = await fetchYarn();
   }
 
   /* copyCurl */

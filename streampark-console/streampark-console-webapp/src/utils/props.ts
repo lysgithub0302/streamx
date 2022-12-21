@@ -17,9 +17,9 @@
 // copy from element-plus
 
 import { warn } from 'vue';
-import { isObject } from '@vue/shared';
+import { isObject } from '/@/utils/is';
 import { fromPairs } from 'lodash-es';
-import type { ExtractPropTypes, PropType } from '@vue/runtime-core';
+import type { ExtractPropTypes, PropType } from 'vue';
 import type { Mutable } from './types';
 
 const wrapperKey = Symbol();

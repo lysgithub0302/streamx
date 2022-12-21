@@ -23,7 +23,6 @@ import static org.apache.streampark.console.core.task.K8sFlinkTrackMonitorWrappe
 
 import org.apache.streampark.common.conf.ConfigConst;
 import org.apache.streampark.common.conf.Workspace;
-import org.apache.streampark.common.domain.FlinkMemorySize;
 import org.apache.streampark.common.enums.ApplicationType;
 import org.apache.streampark.common.enums.DevelopmentMode;
 import org.apache.streampark.common.enums.ExecutionMode;
@@ -36,6 +35,7 @@ import org.apache.streampark.common.util.CompletableFutureUtils;
 import org.apache.streampark.common.util.DeflaterUtils;
 import org.apache.streampark.common.util.ExceptionUtils;
 import org.apache.streampark.common.util.FlinkUtils;
+import org.apache.streampark.common.util.HadoopUtils;
 import org.apache.streampark.common.util.ThreadUtils;
 import org.apache.streampark.common.util.Utils;
 import org.apache.streampark.common.util.YarnUtils;
@@ -61,6 +61,7 @@ import org.apache.streampark.console.core.enums.AppExistsState;
 import org.apache.streampark.console.core.enums.CandidateType;
 import org.apache.streampark.console.core.enums.ChangedType;
 import org.apache.streampark.console.core.enums.CheckPointType;
+import org.apache.streampark.console.core.enums.ConfigFileType;
 import org.apache.streampark.console.core.enums.FlinkAppState;
 import org.apache.streampark.console.core.enums.LaunchState;
 import org.apache.streampark.console.core.enums.OptionState;
@@ -113,6 +114,7 @@ import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.CheckpointingOptions;
 import org.apache.flink.configuration.CoreOptions;
 import org.apache.flink.configuration.JobManagerOptions;
+import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.runtime.jobgraph.SavepointConfigOptions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -708,7 +710,7 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
     public Long copy(Application appParam) {
         boolean existsByJobName = this.existsByJobName(appParam.getJobName());
         if (existsByJobName) {
-            throw new IllegalArgumentException("[StreamPark] Application names cannot be repeated");
+            throw new ApiAlertException("[StreamPark] Application names cannot be repeated");
         }
 
         Application oldApp = getById(appParam.getId());
@@ -717,7 +719,7 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
 
         newApp.setJobName(jobName);
         newApp.setClusterId(ExecutionMode.isSessionMode(oldApp.getExecutionModeEnum()) ? oldApp.getClusterId() : jobName);
-        newApp.setArgs(oldApp.getArgs());
+        newApp.setArgs(appParam.getArgs() != null ? appParam.getArgs() : oldApp.getArgs());
         newApp.setVersionId(oldApp.getVersionId());
 
         newApp.setFlinkClusterId(oldApp.getFlinkClusterId());
@@ -1176,7 +1178,7 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
                 String.format("The clusterId=%s cannot be find, maybe the clusterId is wrong or " +
                         "the cluster has been deleted. Please contact the Admin.",
                     application.getFlinkClusterId()));
-            URI activeAddress = cluster.getActiveAddress();
+            URI activeAddress = cluster.getRemoteURI();
             properties.put(RestOptions.ADDRESS.key(), activeAddress.getHost());
             properties.put(RestOptions.PORT.key(), activeAddress.getPort());
         }
@@ -1253,6 +1255,9 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
                 }
             }
         ).whenComplete((t, e) -> {
+            if (isKubernetesApp(application)) {
+                IngressController.deleteIngress(application.getK8sNamespace(), application.getJobName());
+            }
             cancelFuture.cancel(true);
             cancelFutureMap.remove(application.getId());
         });
@@ -1353,7 +1358,12 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
             } else {
                 switch (application.getApplicationType()) {
                     case STREAMPARK_FLINK:
-                        appConf = String.format("%s://%s", applicationConfig.configType(), applicationConfig.getContent());
+                        ConfigFileType fileType = ConfigFileType.of(applicationConfig.getFormat());
+                        if (fileType != null && !fileType.equals(ConfigFileType.UNKNOWN)) {
+                            appConf = String.format("%s://%s", fileType.getTypeName(), applicationConfig.getContent());
+                        } else {
+                            throw new IllegalArgumentException("application' config type error,must be ( yaml| properties| hocon )");
+                        }
                         break;
                     case APACHE_FLINK:
                         appConf = String.format("json://{\"%s\":\"%s\"}", ConfigConst.KEY_FLINK_APPLICATION_MAIN_CLASS(),
@@ -1476,11 +1486,11 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
                 if (submitResponse.flinkConfig() != null) {
                     String jmMemory = submitResponse.flinkConfig().get(ConfigConst.KEY_FLINK_JM_PROCESS_MEMORY());
                     if (jmMemory != null) {
-                        application.setJmMemory(FlinkMemorySize.parse(jmMemory).getMebiBytes());
+                        application.setJmMemory(MemorySize.parse(jmMemory).getMebiBytes());
                     }
                     String tmMemory = submitResponse.flinkConfig().get(ConfigConst.KEY_FLINK_TM_PROCESS_MEMORY());
                     if (tmMemory != null) {
-                        application.setTmMemory(FlinkMemorySize.parse(tmMemory).getMebiBytes());
+                        application.setTmMemory(MemorySize.parse(tmMemory).getMebiBytes());
                     }
                 }
                 application.setAppId(submitResponse.clusterId());
@@ -1546,7 +1556,7 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
             AssertUtils.state(cluster != null,
                 String.format("The clusterId=%s cannot be find, maybe the clusterId is wrong or " +
                     "the cluster has been deleted. Please contact the Admin.", application.getFlinkClusterId()));
-            URI activeAddress = cluster.getActiveAddress();
+            URI activeAddress = cluster.getRemoteURI();
             properties.put(RestOptions.ADDRESS.key(), activeAddress.getHost());
             properties.put(RestOptions.PORT.key(), activeAddress.getPort());
         } else if (ExecutionMode.isYarnMode(application.getExecutionModeEnum())) {
@@ -1566,7 +1576,12 @@ public class ApplicationServiceImpl extends ServiceImpl<ApplicationMapper, Appli
         }
 
         if (ExecutionMode.isKubernetesApplicationMode(application.getExecutionMode())) {
-            properties.put(JobManagerOptions.ARCHIVE_DIR.key(), Workspace.ARCHIVES_FILE_PATH());
+            try {
+                HadoopUtils.yarnClient();
+                properties.put(JobManagerOptions.ARCHIVE_DIR.key(), Workspace.ARCHIVES_FILE_PATH());
+            } catch (Exception e) {
+                // skip
+            }
         }
 
         if (application.getAllowNonRestored()) {

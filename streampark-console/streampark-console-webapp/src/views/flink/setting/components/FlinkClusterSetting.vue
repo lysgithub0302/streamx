@@ -51,25 +51,26 @@
   const { t } = useI18n();
   const { Swal, createMessage } = useMessage();
   const clusters = ref<FlinkCluster[]>([]);
-  function isSessionMode(mode: number): boolean {
-    return [ExecModeEnum.YARN_SESSION, ExecModeEnum.KUBERNETES_SESSION].includes(mode);
-  }
 
   function handleIsStart(item) {
     return item.clusterState === ClusterStateEnum.STARTED;
   }
+
   /* Go to edit cluster */
   function handleEditCluster(item: FlinkCluster) {
     go(`/flink/setting/edit_cluster?clusterId=${item.id}`);
   }
   /* deploy */
   async function handleDeployCluster(item: FlinkCluster) {
-    const hide = createMessage.loading('The current cluster is starting', 0);
+    const hide = createMessage.loading(
+      t('flink.setting.cluster.operateMessage.flinkClusterIsStarting'),
+      0,
+    );
     try {
       await fetchClusterStart(item.id);
       await Swal.fire({
         icon: 'success',
-        title: 'The current cluster is started',
+        title: t('flink.setting.cluster.operateMessage.flinkClusterHasStartedSuccessful'),
         showConfirmButton: false,
         timer: 2000,
       });
@@ -82,6 +83,7 @@
   /* delete */
   async function handleDelete(item: FlinkCluster) {
     await fetchClusterRemove(item.id);
+    await getFlinkCluster();
     createMessage.success('The current cluster is remove');
   }
   /* shutdown */
@@ -127,23 +129,22 @@
       </ListItemMeta>
       <div class="list-content" style="width: 15%">
         <div class="list-content-item" style="width: 60%">
-          <span>ExecutionMode</span>
+          <span>{{ t('flink.setting.cluster.form.executionMode') }}</span>
           <p style="margin-top: 10px">
             {{ item.executionModeEnum.toLowerCase() }}
           </p>
         </div>
       </div>
-      <div class="list-content" style="width: 15%">
-        <div class="list-content-item" style="width: 80%">
-          <span>ClusterId</span>
-          <p style="margin-top: 10px">
-            {{ item.clusterId }}
-          </p>
-        </div>
-      </div>
-      <div class="list-content" style="width: 20%">
-        <div class="list-content-item" style="width: 60%">
-          <span>Address</span>
+      <div
+        class="list-content"
+        style="width: 40%"
+        v-if="
+          item.executionMode === ExecModeEnum.REMOTE ||
+          item.executionMode === ExecModeEnum.YARN_SESSION
+        "
+      >
+        <div class="list-content-item">
+          <span>{{ t('flink.setting.cluster.form.address') }}</span>
           <p style="margin-top: 10px">
             {{ item.address }}
           </p>
@@ -180,7 +181,7 @@
         <template v-else>
           <Tooltip :title="t('flink.setting.cluster.start')">
             <a-button
-              :disabled="!isSessionMode(item.executionMode)"
+              :disabled="item.executionMode === ExecModeEnum.REMOTE"
               v-auth="'cluster:create'"
               @click="handleDeployCluster(item)"
               shape="circle"
@@ -211,13 +212,7 @@
           :ok-text="t('common.yes')"
           @confirm="handleDelete(item)"
         >
-          <a-button
-            :disabled="item.clusterState === ClusterStateEnum.STARTED"
-            type="danger"
-            shape="circle"
-            size="large"
-            class="control-button"
-          >
+          <a-button type="danger" shape="circle" size="large" class="control-button">
             <DeleteOutlined />
           </a-button>
         </Popconfirm>

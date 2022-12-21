@@ -17,9 +17,10 @@
 import { optionsKeyMapping } from '../data/option';
 import { fetchYarn } from '/@/api/flink/app/app';
 import { AppListRecord } from '/@/api/flink/app/app.type';
-import { fetchActiveURL } from '/@/api/flink/setting/flinkCluster';
+import { fetchRemoteURL } from '/@/api/flink/setting/flinkCluster';
 import {
   AppStateEnum,
+  ConfigTypeEnum,
   ExecModeEnum,
   LaunchStateEnum,
   OptionStateEnum,
@@ -105,7 +106,7 @@ export function descriptionFilter(option) {
 export async function handleView(app: AppListRecord, yarn: Nullable<string>) {
   const executionMode = app['executionMode'];
   if (executionMode == ExecModeEnum.REMOTE) {
-    const res = await fetchActiveURL(app.flinkClusterId);
+    const res = await fetchRemoteURL(app.flinkClusterId);
     window.open(res + '/#/job/' + app.jobId + '/overview');
   } else if (
     [ExecModeEnum.YARN_PER_JOB, ExecModeEnum.YARN_SESSION, ExecModeEnum.YARN_APPLICATION].includes(
@@ -202,6 +203,18 @@ export function handleFormValue(values: Recordable) {
   return options;
 }
 
+export function getAppConfType(configFile: string): number {
+  const config = configFile || '';
+  if (config.endsWith('.yaml') || config.endsWith('.yml')) {
+    return ConfigTypeEnum.YAML;
+  } else if (config.endsWith('.properties')) {
+    return ConfigTypeEnum.PROPERTIES;
+  } else if (config.endsWith('.conf')) {
+    return ConfigTypeEnum.HOCON;
+  }
+  return ConfigTypeEnum.UNKNOWN;
+}
+
 export function handleDependencyJsonToPom(json, pomMap, jarMap) {
   if (json != null && json.trim() !== '') {
     const deps = JSON.parse(json);
@@ -269,7 +282,10 @@ export function handleSubmitParams(
     description: values.description,
     k8sNamespace: values.k8sNamespace || null,
     clusterId: values.clusterId || null,
-    flinkClusterId: values.flinkClusterId || null,
+    flinkClusterId:
+      (values.executionMode == ExecModeEnum.YARN_SESSION
+        ? values.yarnSessionClusterId
+        : values.flinkClusterId) || null,
     flinkImage: values.flinkImage || null,
   });
   if (params.executionMode == ExecModeEnum.KUBERNETES_APPLICATION) {

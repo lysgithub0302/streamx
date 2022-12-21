@@ -28,6 +28,7 @@ export default {
   jobType: 'Job Type',
   developmentMode: 'Development Mode',
   executionMode: 'Execution Mode',
+  historyVersion: 'History Version',
   dependency: 'Dependency',
   appConf: 'Application Conf',
   resolveOrder: 'resolveOrder',
@@ -201,7 +202,9 @@ export default {
     appNameExistsInK8sMessage:
       'The application name is already exists in Kubernetes,cannot be repeated. Please check',
     appNameNotValid:
-      'The application name is invalid.characters must be (Chinese|English|"-"|"_"),two consecutive spaces cannot appear.Please check',
+      'The application name is invalid, must be (Chinese or English or "-" or "_"), two consecutive spaces cannot appear.Please check',
+    flinkClusterIsRequiredMessage: 'Flink Cluster is required',
+    flinkSqlIsRequiredMessage: 'Flink SQL is required',
     tagsPlaceholder: 'Please enter tags,if more than one, separate them with commas(,)',
     parallelismPlaceholder: 'The parallelism with which to run the program',
     slotsOfPerTaskManagerPlaceholder: 'Number of slots per TaskManager',
@@ -213,6 +216,8 @@ export default {
     descriptionPlaceholder: 'Please enter description for this application',
     kubernetesNamespacePlaceholder: 'Please enter kubernetes Namespace, e.g: default',
     kubernetesClusterIdPlaceholder: 'Please enter Kubernetes clusterId',
+    kubernetesClusterIdRequire:
+      "lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character",
     kubernetesClusterIdIsRequiredMessage: 'Kubernetes clusterId is required',
     flinkImagePlaceholder:
       'Please enter the tag of Flink base docker image, such as: flink:1.13.0-scala_2.11-java8',
@@ -220,11 +225,14 @@ export default {
     k8sRestExposedTypePlaceholder: 'kubernetes.rest-service.exposed.type',
     hadoopXmlConfigFileTips:
       'Automatically copy configuration files from system environment parameters',
+    dynamicPropertiesPlaceholder:
+      '$key=$value,If there are multiple parameters,you can new line enter them (-D <arg>)',
   },
   noteInfo: {
     note: 'Note',
     minute: 'minute',
     count: 'count',
+    officialDoc: 'official document',
     checkPointFailureOptions: 'CheckPoint Failure Options',
     checkpointFailureRateInterval: 'checkpoint failure rate interval',
     maxFailuresPerInterval: 'max failures per interval',
@@ -232,5 +240,7 @@ export default {
       'Operation after checkpoint failure, e.g: Within 5 minutes (checkpoint failure rate interval), if the number of checkpoint failures reaches 10 (max failures per interval),action will be triggered(alert or restart job)',
     totalMemoryNote:
       'Explicitly configuring both "total process memory" and "total Flink memory" is not recommended. It may lead to deployment failures due to potential memory configuration conflicts. Configuring other memory components also requires caution as it can produce further configuration conflicts, The easiest way is to set "total process memory"',
+    dynamicProperties:
+      'It works the same as -D$property=$value in CLI mode, Allows specifying multiple generic configuration options. The available options can be found from',
   },
 };
